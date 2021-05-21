@@ -20,6 +20,7 @@ cfg["ROBBER_GECKODRIVER_PATH"] = "geckodriver/geckodriver"
 cfg["ROBBER_DEBUG"] = True
 cfg["ROBBER_GRAB_LOGS"] = True
 cfg["ROBBER_GRAB_GRAPHS"] = True
+cfg["ROBBER_GRAB_OLDRUNS"] = True
 cfg["ROBBER_TARGET_SITES"] = "http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=production_c2f11&run=&showJobs&showTimestampsGraph&showEventsGraph,http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&run=&showJobs&showTimestampsGraph&showEventsGraph"
 cfg["ROBBER_OUTPUT_PATHS"] = "tmp/content_1.html,tmp/content_2.html"
 cfg["ROBBER_RELOAD_NITERS"] = 100
