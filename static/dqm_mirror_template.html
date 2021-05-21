@@ -54,11 +54,14 @@
       color:  #d4ac0d  ;
     }
 
-	  title {
+	  .title {
         float: left;
         display: block;
         text-align: center;
-        padding: 8px 16px;
+        padding-left: 16px;
+        padding-top: 7px;
+        padding-right: 16px;
+        padding-bottom: 6px;
         text-decoration: none;
         font-size: 18px;
         background-color:      #2471a3     ;
@@ -77,7 +80,10 @@
   </style>
 </head>
 <body>
-  <title> DQM &#x25A0; Mirror </title>
+
+  <div class="title">
+  DQM <sup>2</sup> &#x25A0; Mirror
+  </div>
 
   <div>
     <button class="btn" id="btn_production" onclick="init_load_production()">production</button>
