@@ -10,7 +10,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 import time, base64
 
 if __name__ == '__main__':
-  NAME = "dqmsquare_rebber.py:"
+  NAME = "dqmsquare_robber.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
 
   sites  = cfg["ROBBER_TARGET_SITES"].split(",")
@@ -55,7 +55,7 @@ if __name__ == '__main__':
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
         canvases = driver.find_elements_by_css_selector("canvas")
         for j, canv in enumerate(canvases):
-          opath_canv = save_prefix + "canv_" + str(j) + ".png"
+          opath_canv = save_prefix + "_canv" + str(j)
           n_tries = 5
           while n_tries > 0:
             try : 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
       driver.switch_to_window( driver.window_handles[-1] )
       if bool(cfg["ROBBER_DEBUG"]) : print( NAME, "load link", link )
       driver.get( link );
-      time.sleep( int(cfg["SLEEP_TIME"]) )
+      time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
 
       runs_done = []
       while True:

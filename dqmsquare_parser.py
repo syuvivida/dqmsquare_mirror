@@ -4,6 +4,7 @@ import dqmsquare_cfg
 from bs4 import BeautifulSoup
 import random, time, os
 from datetime import datetime
+from collections import defaultdict
 
 class DQMPageData( ):
   def __init__(self,  cfg, input_file="", output_file=""):
@@ -16,9 +17,16 @@ class DQMPageData( ):
     self.output_file = output_file
     self.input_file  = input_file
     self.run_number = "-"
+    self.origin_run_number = ""
+    self.link_prefix = ""
+    self.old_runs_pages = []
 
-    self.colors = {"G" : "#52BE80", "R" : "#EC7063", "Y" : "#F4D03F" }
-    
+    self.colors = {"G" : "#52BE80", "R" : "#EC7063", "Y" : "#F4D03F", "title" : "#2471a3" }
+
+  def GetJoblogFileName(self, index):
+    name = self.output_file + "_job" + str(index) + ".log"
+    link = self.link_prefix + name
+    return name, link
 
   def AddServer(self, name, state):
     d = {"name" : self.GetServerName(name), "state" : state}
@@ -46,18 +54,27 @@ class DQMPageData( ):
     self.jobs_logs[-1] += logs
     self.jobs[-1][-1] = "->"
 
-    i = len(self.jobs)-1
-    if cfg["SERVER_LOCAL"] :  
-      link = os.path.splitext( self.output_file )[0] + "_jlog" + str(i) + ".log"
-    else : 
-      link = "/dqm/dqm-square/" + os.path.splitext( self.output_file )[0] + "_jlog" + str(i) + ".log"
-
+    name, link = self.GetJoblogFileName( len(self.jobs)-1 )
     self.jobs[-1][-1] = '<a href="'+link+'" target="_blank"> -> </a>'
 
     pass
 
-  def Dump(self):
+  def Dump(self, write_out=True, write_out_logs=True):
     content = '<p style="clear:both;margin-bottom:5px"></p>'
+
+    ### Run
+    content += '<p style="margin-bottom:1px"> '
+    content += 'Run: '
+    content += '<strong>' + str(self.run_number) 
+    if self.origin_run_number : content += ' (' + str(self.origin_run_number) + ')'
+    content += '</strong> &nbsp;&nbsp;&nbsp;&nbsp;'
+
+    ### old Runs links:
+    if self.old_runs_pages : 
+      content += 'Old runs: '
+      for run_id, link, page in self.old_runs_pages:
+        content += '<a href="'+link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
+      content += '\n\n'
 
     ### timestamps
     parser_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -81,7 +98,6 @@ class DQMPageData( ):
     ### run number & legends
     content += '<p style="margin-bottom:1px"> '
     content += 'Known cmssw jobs: <strong>' + str(len(self.jobs)) + '</strong> &nbsp;&nbsp;&nbsp;&nbsp;'
-    content += 'Run: <strong>' + str(self.run_number) + '</strong> &nbsp;&nbsp;&nbsp;&nbsp;'
     content += 'Legend: '
     content += '<strong><span style="background-color:' + self.colors["G"] + '"> &nbsp;&nbsp; running ' + str(len([attr for attr in self.jobs_attr if self.colors["G"] in attr['row_attr']])) + ' &nbsp;&nbsp; </span></strong>'
     content += '<strong><span style="background-color:' + self.colors["Y"] + '"> &nbsp;&nbsp; stopped ' + str(len([attr for attr in self.jobs_attr if self.colors["Y"] in attr['row_attr']])) + ' &nbsp;&nbsp; </span></strong>'
@@ -108,29 +124,33 @@ class DQMPageData( ):
       dir_name = os.path.dirname(self.input_file)
       fname    = os.path.basename(self.input_file)
       for item in os.listdir( dir_name ) : 
-        if not item.endswith(".png") : continue
-        if fname not in item : continue
+        if not "canv" in item : continue
+        if  fname + "_canv" not in item : continue
         content += "<img src=" + os.path.join(dir_name, item) + ">\n"
 
-    ### write out
-    if self.output_file : 
-      file = open(self.output_file,"w")
+    ### write out body
+    if self.output_file and write_out : 
+      file = open( self.output_file, "w" )
       file.write( content )
       file.close()
 
-      ### logs
-      for i, jlog in enumerate(self.jobs_logs) :
-        oname = os.path.splitext( self.output_file )[0] + "_jlog" + str(i) + ".log"
-        file = open(oname,"w")
+    ### write out logs
+    if self.output_file and write_out_logs :
+      for i, jlog in enumerate( self.jobs_logs ) :
+        oname, link = self.GetJoblogFileName( i )
+        file = open( oname,"w" )
         file.write( jlog )
         file.close()
 
-    else : print content
+    return content
 
 if __name__ == '__main__':
   NAME = "dqmsquare_parser.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   print cfg
+
+  # prefix = "/dqm/dqm-square/"
+  # if cfg["SERVER_LOCAL"] :  prefix = ""
 
   ipaths = cfg["PARSER_INPUT_PATHS"].split(",")
   opaths = cfg["PARSER_OUTPUT_PATHS"].split(",")
@@ -149,10 +169,11 @@ if __name__ == '__main__':
       return ""
     
   def parse_dqmsquare_page( input_page, output_page ):
+    if bool(cfg["PARSER_DEBUG"]) : print NAME, "parse_dqmsquare_page()", input_page, "->", output_page
     html_doc = load_html( input_page )
     if not html_doc :
       print( NAME, "waiting for the input file", input_page )
-      continue
+      return
 
     soup = BeautifulSoup(html_doc, 'html.parser')
     soup.prettify()
@@ -182,6 +203,19 @@ if __name__ == '__main__':
         if len(spans) : run_number = spans[0].text
         break
     dqm_data.run_number = run_number
+
+    ### original Run number
+    origin_run_number = ""
+    breadcrumbs = soup.find_all("div", {"ng-controller": "CachedDocumentCtrl"}  )
+    for bread in breadcrumbs:
+      candidate = bread.find_all("strong", {"class": "ng-binding"} )
+      for cand in candidate:
+        if not cand.has_attr("title") : continue
+        for part in cand["title"].split("/") :
+          if not "run" in part : continue
+          origin_run_number = part[len("run"):]
+          break
+    dqm_data.origin_run_number = origin_run_number
 
     ### get jobs states ...
     for table in soup.find_all( 'tbody' ):
@@ -226,16 +260,37 @@ if __name__ == '__main__':
         if bool(cfg["PARSER_RANDOM"]) : ltime = str( random.randint(0, 100) )
         dqm_data.AddJob(dtime, ltime, sname, state, tag, lumi, rss, nevents, logs )
 
-    dqm_data.Dump()
+    return dqm_data
 
   while True:
     ### targets old runs ...
-    for i in xrange(N_targets):
-      for 
+    print( cfg["PARSER_PARSE_OLDRUNS"] )
+
+    dqm_data_dic = defaultdict( list )
+    if bool(cfg["PARSER_PARSE_OLDRUNS"]) : 
+      for i in xrange(N_targets):
+        dir_name = os.path.dirname( ipaths[i] )
+        fname    = os.path.basename(ipaths[i] )
+        for item in os.listdir( dir_name ) : 
+          if item.endswith(".png") : continue
+          if not fname + "_run" in item : continue
+          if "canv" in item : continue
+
+          run_id = item.split("run")[1]
+          dqm_data = parse_dqmsquare_page( os.path.join(dir_name, item), opaths[i] + "_run" + run_id )
+          page = dqm_data.Dump(True, True)
+          # print page
+          dqm_data_dic[ i ] += [ [run_id, opaths[i] + "_run" + run_id, page] ]
+
+        if i in dqm_data_dic:
+          data = sorted( dqm_data_dic[ i ], key=lambda x : -int(x[0]) )
+          dqm_data_dic[ i ] = data[1:]
 
     ### targets ...
     for i in xrange(N_targets):
       dqm_data = parse_dqmsquare_page( ipaths[i], opaths[i] )
+      dqm_data.old_runs_pages = dqm_data_dic[ i ]
+      dqm_data.Dump(True, True)
 
     time.sleep( int(cfg["SLEEP_TIME"]) )
 

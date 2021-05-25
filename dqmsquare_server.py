@@ -20,6 +20,7 @@ def get_static(filename):
   return static_file(filename, root='./static/')
 
 @route('/tmp/<filename>')
+@route('/tmp/tmp/<filename>')
 def get_tmp(filename):
   content = static_file(filename, root='./tmp/')
   print( content )

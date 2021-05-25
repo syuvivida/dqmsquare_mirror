@@ -50,6 +50,7 @@ cp dist/dqmsquare_robber $sfolder/.
 cp dist/dqmsquare_parser $sfolder/.
 
 # create def cfg
+cd $sfolder
 python dqmsquare_cfg.py
 
 
