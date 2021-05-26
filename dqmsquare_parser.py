@@ -1,10 +1,15 @@
 # P.S.~Mandrik, IHEP, https://github.com/pmandrik
 
 import dqmsquare_cfg
-from bs4 import BeautifulSoup
+
 import random, time, os
 from datetime import datetime
 from collections import defaultdict
+
+from bs4 import BeautifulSoup
+
+import logging
+log = logging.getLogger(__name__)
 
 class DQMPageData( ):
   def __init__(self,  cfg, input_file="", output_file=""):
@@ -72,7 +77,7 @@ class DQMPageData( ):
     ### old Runs links:
     if self.old_runs_pages : 
       content += 'Old runs: '
-      for run_id, link, page in self.old_runs_pages:
+      for run_id, link in self.old_runs_pages:
         content += '<a href="'+link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
       content += '\n\n'
 
@@ -147,7 +152,8 @@ class DQMPageData( ):
 if __name__ == '__main__':
   NAME = "dqmsquare_parser.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
-  print cfg
+  dqmsquare_cfg.set_log_handler(log, cfg["PARSER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["PARSER_DEBUG"])
+  log.info("begin ...")
 
   # prefix = "/dqm/dqm-square/"
   # if cfg["SERVER_LOCAL"] :  prefix = ""
@@ -155,8 +161,8 @@ if __name__ == '__main__':
   ipaths = cfg["PARSER_INPUT_PATHS"].split(",")
   opaths = cfg["PARSER_OUTPUT_PATHS"].split(",")
   N_targets = len(ipaths)
-  if len(ipaths) != len(opaths) :
-    print( NAME, "len(PARSER_INPUT_PATHS) != len(PARSER_OUTPUT_PATHS)", len(ipaths), len(opaths), "; exit" )
+  if len(ipaths) != len(opaths):
+    log.error("len(PARSER_INPUT_PATHS) != len(PARSER_OUTPUT_PATHS) %d %d; exit" % ( len(ipaths), len(opaths) ) )
     exit()
 
   def load_html(path):
@@ -169,10 +175,11 @@ if __name__ == '__main__':
       return ""
     
   def parse_dqmsquare_page( input_page, output_page ):
-    if bool(cfg["PARSER_DEBUG"]) : print NAME, "parse_dqmsquare_page()", input_page, "->", output_page
+    log.debug("parse_dqmsquare_page(): %s -> %s" % (input_page, output_page) )
+
     html_doc = load_html( input_page )
     if not html_doc :
-      print( NAME, "waiting for the input file", input_page )
+      log.info("waiting for the input file", input_page )
       return
 
     soup = BeautifulSoup(html_doc, 'html.parser')
@@ -188,7 +195,7 @@ if __name__ == '__main__':
       try:
         name = link.contents[0].split()[0]
         state = link.findChildren("strong" , recursive=False)[0].text
-        if bool(cfg["PARSER_DEBUG"]) : print NAME, "add server", name, state 
+        log.debug("add server %s %s" % (name, state) )
         dqm_data.AddServer( name, state )
       except : pass
 
@@ -199,8 +206,8 @@ if __name__ == '__main__':
       has_text = bread.find_all("span", string="Known cmssw jobs")
       if len(has_text) : 
         spans = bread.find_all('strong', {"class": "ng-binding"} )
-        print spans, spans[0].text
         if len(spans) : run_number = spans[0].text
+        log.debug("get run number %s" % (spans[0].text) )
         break
     dqm_data.run_number = run_number
 
@@ -214,6 +221,7 @@ if __name__ == '__main__':
         for part in cand["title"].split("/") :
           if not "run" in part : continue
           origin_run_number = part[len("run"):]
+          log.debug("get original run number %s" % origin_run_number )
           break
     dqm_data.origin_run_number = origin_run_number
 
@@ -231,6 +239,7 @@ if __name__ == '__main__':
           logs_parts = row.find_all('dqm-log')
           if not logs_parts : continue
           logs = "\n ... \n".join( [ ele.text.strip() for ele in logs_parts ] )
+          log.debug("add logs for job row %d" % row_index )
           dqm_data.AddJobLogs( logs )
           continue
 
@@ -256,43 +265,73 @@ if __name__ == '__main__':
         rss     = get_def_I(6)
         nevents = get_def_II(7,0)
 
-        if bool(cfg["PARSER_DEBUG"]) : print NAME, "add job", dtime, ltime, sname, state, tag, lumi, rss, nevents
-        if bool(cfg["PARSER_RANDOM"]) : ltime = str( random.randint(0, 100) )
+        log.debug("add job" + str(dtime) + " " + str(ltime) + " " + str(sname) + " " + str(state) + " " + str(tag) + " " + str(lumi) + " " + str(rss) + " " + str(nevents))
+        if bool(cfg["PARSER_RANDOM"]): ltime = str( random.randint(0, 100) )
         dqm_data.AddJob(dtime, ltime, sname, state, tag, lumi, rss, nevents, logs )
 
     return dqm_data
 
+  ### parser loop === >
   while True:
-    ### targets old runs ...
-    print( cfg["PARSER_PARSE_OLDRUNS"] )
+    processes_pages = []
 
+    ### targets old runs ...
     dqm_data_dic = defaultdict( list )
     if bool(cfg["PARSER_PARSE_OLDRUNS"]) : 
-      for i in xrange(N_targets):
-        dir_name = os.path.dirname( ipaths[i] )
-        fname    = os.path.basename(ipaths[i] )
-        for item in os.listdir( dir_name ) : 
-          if item.endswith(".png") : continue
-          if not fname + "_run" in item : continue
-          if "canv" in item : continue
+      try:
+        for i in xrange(N_targets):
+          dir_name = os.path.dirname( ipaths[i] )
+          fname    = os.path.basename(ipaths[i] )
 
-          run_id = item.split("run")[1]
-          dqm_data = parse_dqmsquare_page( os.path.join(dir_name, item), opaths[i] + "_run" + run_id )
-          page = dqm_data.Dump(True, True)
-          # print page
-          dqm_data_dic[ i ] += [ [run_id, opaths[i] + "_run" + run_id, page] ]
+          input_oldrun_files = []
+          for item in os.listdir( dir_name ) : 
+            if item.endswith(".png") : continue
+            if not fname + "_run" in item : continue
+            if "canv" in item : continue
+            f = os.path.join(dir_name, item)
+            input_oldrun_files += [ [f, os.path.getmtime( f )] ]
 
-        if i in dqm_data_dic:
-          data = sorted( dqm_data_dic[ i ], key=lambda x : -int(x[0]) )
-          dqm_data_dic[ i ] = data[1:]
+          input_oldrun_files = sorted( input_oldrun_files, key=lambda x : -x[1] )
+          input_oldrun_files = input_oldrun_files[:min(len(input_oldrun_files), int(cfg["PARSER_MAX_OLDRUNS"]))]
+
+          for f, created_time in input_oldrun_files :
+            run_id = f.split("run")[1]
+            out_name = opaths[i] + "_run" + run_id
+            dqm_data_dic[ i ] += [ [run_id, out_name] ]
+
+            if os.path.isfile( out_name ) :
+              timestamp = os.path.getmtime( out_name )
+              now = time.time()
+              if abs(timestamp - now) / 60 / 60 < int(cfg["PARSER_OLDRUNS_UPDATE_TIME"]) :
+                log.debug("skip oldrun " + run_id)
+                continue
+
+            log.debug("parse oldrun " + run_id)
+            dqm_data = parse_dqmsquare_page( f, out_name )
+            dqm_data.Dump(True, True)
+            processes_pages += [ f ]
+
+          if i in dqm_data_dic:
+            data = sorted( dqm_data_dic[ i ], key=lambda x : -int(x[0]) )
+            dqm_data_dic[ i ] = data[1:]
+      except Exception as error_log:
+        log.warning("parser crashed for old runs ...")
+        log.warning(error_log)
 
     ### targets ...
-    for i in xrange(N_targets):
-      dqm_data = parse_dqmsquare_page( ipaths[i], opaths[i] )
-      dqm_data.old_runs_pages = dqm_data_dic[ i ]
-      dqm_data.Dump(True, True)
+    try:
+      for i in xrange(N_targets):
+        dqm_data = parse_dqmsquare_page( ipaths[i], opaths[i] )
+        dqm_data.old_runs_pages = dqm_data_dic[ i ]
+        dqm_data.Dump(True, True)
+        processes_pages += [ ipaths[i] ]
+    except Exception as error_log:
+      log.warning("parser crashed for current runs ...")
+      log.warning(error_log)
 
+    log.info("processes pages %s" % ",".join(processes_pages) )
     time.sleep( int(cfg["SLEEP_TIME"]) )
+
 
 
 

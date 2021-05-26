@@ -2,22 +2,27 @@
 
 import dqmsquare_cfg
 
+import time, base64
+
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 
-import time, base64
+import logging
+log = logging.getLogger(__name__)
 
 if __name__ == '__main__':
   NAME = "dqmsquare_robber.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
+  dqmsquare_cfg.set_log_handler(log, cfg["ROBBER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["ROBBER_DEBUG"])
+  log.info("begin ...")
 
   sites  = cfg["ROBBER_TARGET_SITES"].split(",")
   opaths = cfg["ROBBER_OUTPUT_PATHS"].split(",")
   N_targets = len(sites)
   if len(sites) != len(opaths) :
-    print( NAME, "len(ROBBER_TARGET_SITES) != len(ROBBER_OUTPUT_PATHS)", len(sites), len(opaths), "; exit" )
+    log.error("len(ROBBER_TARGET_SITES) != len(ROBBER_OUTPUT_PATHS) %d %d; exit" % ( len(sites), len(opaths) ) )
     exit()
 
   def save_site( content, path ):
@@ -27,9 +32,11 @@ if __name__ == '__main__':
 
   ### know python 2.7, firefox is required to be installed in the system
   if cfg["ROBBER_BACKEND"] == "selenium" :
+    log.info("setup Selenium WebDriver ...")
     options = Options()
     options.headless = True
     driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"])
+    log.info("setup Selenium WebDriver ... ok")
 
     ### define scroll hack
     def scroll_shim(driver, object):
@@ -50,7 +57,9 @@ if __name__ == '__main__':
             if span.get_attribute("ng-click") == "_show_inline = 'log'":
               scroll_shim( driver, span )
               ActionChains(driver).move_to_element(span).click().perform()
-          except : pass
+          except Exception as error_log:
+            log.warning( "cant click on log button" )
+            log.warning( error_log )
 
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
         canvases = driver.find_elements_by_css_selector("canvas")
@@ -63,9 +72,10 @@ if __name__ == '__main__':
               canvas_png = base64.b64decode(canvas_base64)
               with open(opath_canv, 'wb') as f:
                 f.write(canvas_png)
-            except :
+            except Exception as error_log:
               n_tries -=1
-              if bool(cfg["ROBBER_DEBUG"]) : print( NAME, "cant load and save image", opath_canv, ", N tries left = ", n_tries )
+              log.warning( "cant load and save image %s N tries left = %d" % ( opath_canv, n_tries) )
+              log.warning( error_log )
               time.sleep( int(cfg["SLEEP_TIME"]) )
               continue
             finally :
@@ -77,39 +87,54 @@ if __name__ == '__main__':
     def get_old_runs(driver, opath, link):
       if not bool(cfg["ROBBER_GRAB_OLDRUNS"]) : return
       driver.switch_to_window( driver.window_handles[-1] )
-      if bool(cfg["ROBBER_DEBUG"]) : print( NAME, "load link", link )
-      driver.get( link );
-      time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
+      log.debug( "load link %s" % link )
+      driver.get( link )
+      time.sleep( int(cfg["SLEEP_TIME"]) )
 
       runs_done = []
       while True:
         runs_checkboxes = driver.find_elements_by_xpath( '//input[@type="checkbox"]' )
 
         if not runs_checkboxes : 
-          print( NAME, "get_old_runs(): no checkbox in ", link, ", skip" )
+          log.warning( "get_old_runs(): no show-runs checkbox at %s, skip" % link )
           break
-        scroll_shim( driver, runs_checkboxes[0] )
-        ActionChains(driver).move_to_element(runs_checkboxes[0]).click().perform()
+
+        try:
+          scroll_shim( driver, runs_checkboxes[0] )
+          ActionChains(driver).move_to_element(runs_checkboxes[0]).click().perform()
+        except Exception as error_log:
+          log.warning( "get_old_runs(): can't click on checkbox at %s, skip" % sites[i] )
+          log.warning( error_log )
+          break
 
         all_runs_links = driver.find_elements_by_xpath( '//a[@class="label-run label label-info ng-binding ng-scope"]' )
         has_new_runs = False
-        print all_runs_links
 
         for run_link in all_runs_links :
           if run_link.text in runs_done : continue
           if not run_link.text : continue
           has_new_runs = True
-
           output_path = opath + "_run" + run_link.text
-          #try:
-          if True:
+
+          ### check if output already exist
+          if os.path.isfile( output_path ) :
+            timestamp = os.path.getmtime( output_path )
+            now = time.time()
+            if abs(timestamp - now) / 60 / 60 < int(cfg["ROBBER_OLDRUNS_UPDATE_TIME"]) :
+              log.debug("skip oldrun link: " + run_link)
+              continue
+  
+          ### click and load content
+          try:
             scroll_shim( driver, run_link )
             ActionChains(driver).move_to_element(run_link).click().perform()
-            time.sleep( int(cfg["SLEEP_TIME"]) )
+            time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
             content = dqm_2_grab(driver, output_path )
-            if bool(cfg["ROBBER_DEBUG"]) : print( NAME, "get content from RUN", run_link.text, content[:100] )
+            log.debug( "get content from old run " + sites[i] + "\"" + content[:100] + "...\"" )
             save_site( content, output_path )
-          #except: pass
+          except Exception as error_log:
+            log.warning( "can't reach %s skip ..." % sites[i] )
+            log.warning( error_log )
 
           runs_done += [ run_link.text ]
 
@@ -124,8 +149,9 @@ if __name__ == '__main__':
         try:
           driver.get( sites[i] );
           list_good_sites[i] = True
-        except :
-          print(NAME, "can't reach", sites[i], "skip ...")
+        except Exception as error_log:
+          log.warning( "can't reach %s skip ..." % sites[i] )
+          log.warning( error_log )
           list_good_sites[i] = False
 
       time.sleep( int(cfg["SLEEP_TIME"]) )
@@ -133,9 +159,9 @@ if __name__ == '__main__':
 
     ### loop
     n_iters = int(cfg["ROBBER_RELOAD_NITERS"]) + 1
-    try:
-      ### the DQM is updates by JavaScript, so we are
-      while True:
+    log.info("loop ...")
+    while True:
+      try:
         n_iters += 1
         if n_iters > int(cfg["ROBBER_RELOAD_NITERS"]) : 
           n_iters = 0
@@ -143,6 +169,7 @@ if __name__ == '__main__':
 
           for i in range(N_targets):
             if not list_good_sites[i] : continue
+            log.debug( "get old run contents from " + sites[i] )
             get_old_runs(driver, opaths[i], sites[i])
 
         for i in range(N_targets):
@@ -151,12 +178,16 @@ if __name__ == '__main__':
           driver.switch_to_window( driver.window_handles[i] )
           content = dqm_2_grab(driver, opaths[i])
 
-          if bool(cfg["ROBBER_DEBUG"]) : print( NAME, "get content from", sites[i], content[:100] )
+          log.debug( "get content from " + sites[i] + "\"" + content[:100] + "...\"" )
           save_site( content, opaths[i] )
 
-        time.sleep( int(cfg["SLEEP_TIME"]) )
-    except KeyboardInterrupt:
-      print(NAME, 'interrupted, exiting')
+      except KeyboardInterrupt:
+        break
+      except Exception as error_log:
+        log.warning("grabbed crashed ...")
+        log.warning(error_log)
+
+      time.sleep( int(cfg["SLEEP_TIME"]) )
 
     driver.close()
     driver.quit()

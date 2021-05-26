@@ -9,6 +9,9 @@ import bottle
 from bottle import route, template, request, static_file, error
 from bottle import default_app
 
+import logging
+log = logging.getLogger(__name__)
+
 #@error(404)
 #@error(403)
 @route('/')
@@ -34,6 +37,7 @@ def start_server( cfg ):
 
 if __name__ == '__main__':
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
+  dqmsquare_cfg.set_log_handler(log, cfg["SERVER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], True)
 
   def make_dqm_mirrow_page(cfg):
     ifile = open("static/dqm_mirror_template.html","r")
@@ -53,8 +57,12 @@ if __name__ == '__main__':
     ofile.write( content )
     ofile.close()
 
+  log.info("make_dqm_mirrow_page() call ... ")
   make_dqm_mirrow_page( cfg )
+
+  log.info("start_server() call ... ")
   start_server( cfg )
+  log.info("start_server() end ... ")
 
 
 

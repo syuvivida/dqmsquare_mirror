@@ -3,9 +3,11 @@
 
 sfolder=`pwd`
 tmp_folder=`pwd`/tmp
+log_folder=`pwd`/log
 build_folder=`pwd`/build
 
 mkdir -p $tmp_folder
+mkdir -p $log_folder
 mkdir -p $build_folder
 
 ### DOWNLOAD IF UNEXIST ###
