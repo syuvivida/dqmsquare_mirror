@@ -16,7 +16,9 @@ if __name__ == '__main__':
   NAME = "dqmsquare_robber.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["ROBBER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["ROBBER_DEBUG"])
+
   log.info("begin ...")
+  error_logs = dqmsquare_cfg.ErrorLogs()
 
   sites  = cfg["ROBBER_TARGET_SITES"].split(",")
   opaths = cfg["ROBBER_OUTPUT_PATHS"].split(",")
@@ -57,9 +59,10 @@ if __name__ == '__main__':
             if span.get_attribute("ng-click") == "_show_inline = 'log'":
               scroll_shim( driver, span )
               ActionChains(driver).move_to_element(span).click().perform()
-          except Exception as error_log:
-            log.warning( "cant click on log button" )
-            log.warning( error_log )
+          except bool(cfg["ROBBER_DEBUG"]) or Exception as error_log:
+            if error_logs.Check( "click on log button", error_log ) :
+              log.warning( "cant click on log button" )
+              log.warning( error_log )
 
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
         canvases = driver.find_elements_by_css_selector("canvas")
@@ -73,9 +76,10 @@ if __name__ == '__main__':
               with open(opath_canv, 'wb') as f:
                 f.write(canvas_png)
             except Exception as error_log:
+              if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "cant load and save image", error_log ) :
+                log.warning( "cant load and save image %s N tries left = %d" % ( opath_canv, n_tries) )
+                log.warning( error_log )
               n_tries -=1
-              log.warning( "cant load and save image %s N tries left = %d" % ( opath_canv, n_tries) )
-              log.warning( error_log )
               time.sleep( int(cfg["SLEEP_TIME"]) )
               continue
             finally :
@@ -103,8 +107,9 @@ if __name__ == '__main__':
           scroll_shim( driver, runs_checkboxes[0] )
           ActionChains(driver).move_to_element(runs_checkboxes[0]).click().perform()
         except Exception as error_log:
-          log.warning( "get_old_runs(): can't click on checkbox at %s, skip" % sites[i] )
-          log.warning( error_log )
+          if error_logs.Check( "get_old_runs(): can't click on checkbox", error_log ) :
+            log.warning( "get_old_runs(): can't click on checkbox at %s, skip" % sites[i] )
+            log.warning( error_log )
           break
 
         all_runs_links = driver.find_elements_by_xpath( '//a[@class="label-run label label-info ng-binding ng-scope"]' )
@@ -121,9 +126,9 @@ if __name__ == '__main__':
             timestamp = os.path.getmtime( output_path )
             now = time.time()
             if abs(timestamp - now) / 60 / 60 < int(cfg["ROBBER_OLDRUNS_UPDATE_TIME"]) :
-              log.debug("skip oldrun link: " + run_link)
+              log.debug("skip oldrun link: " + run_link.text)
               continue
-  
+
           ### click and load content
           try:
             scroll_shim( driver, run_link )
@@ -133,8 +138,9 @@ if __name__ == '__main__':
             log.debug( "get content from old run " + sites[i] + "\"" + content[:100] + "...\"" )
             save_site( content, output_path )
           except Exception as error_log:
-            log.warning( "can't reach %s skip ..." % sites[i] )
-            log.warning( error_log )
+            if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "get_old_runs(): can't reach %s skip" % sites[i], error_log ) :
+              log.warning( "get_old_runs(): can't reach %s skip ..." % sites[i] )
+              log.warning( error_log )
 
           runs_done += [ run_link.text ]
 
@@ -150,8 +156,9 @@ if __name__ == '__main__':
           driver.get( sites[i] );
           list_good_sites[i] = True
         except Exception as error_log:
-          log.warning( "can't reach %s skip ..." % sites[i] )
-          log.warning( error_log )
+          if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "reload_pages(): can't reach %s skip" % sites[i], error_log ) :
+            log.warning( "reload_pages(): can't reach %s skip ..." % sites[i] )
+            log.warning( error_log )
           list_good_sites[i] = False
 
       time.sleep( int(cfg["SLEEP_TIME"]) )
@@ -163,7 +170,7 @@ if __name__ == '__main__':
     while True:
       try:
         n_iters += 1
-        if n_iters > int(cfg["ROBBER_RELOAD_NITERS"]) : 
+        if n_iters > int(cfg["ROBBER_RELOAD_NITERS"]) or not sum(list_good_sites): 
           n_iters = 0
           list_good_sites = reload_pages()
 
@@ -184,8 +191,9 @@ if __name__ == '__main__':
       except KeyboardInterrupt:
         break
       except Exception as error_log:
-        log.warning("grabbed crashed ...")
-        log.warning(error_log)
+        if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "grabber crashed", error_log ) :
+          log.warning("grabber crashed ...")
+          log.warning(error_log)
 
       time.sleep( int(cfg["SLEEP_TIME"]) )
 

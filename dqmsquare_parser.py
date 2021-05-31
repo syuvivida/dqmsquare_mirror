@@ -173,13 +173,20 @@ if __name__ == '__main__':
       return html_doc
     except:
       return ""
+
+  def check_lifetime_output(out_name, threshold) :
+    if not os.path.isfile( out_name ) : return True
+    timestamp = os.path.getmtime( out_name )
+    now = time.time()
+    if abs(timestamp - now) / 60 / 60 < threshold: return False
+    return True
     
   def parse_dqmsquare_page( input_page, output_page ):
     log.debug("parse_dqmsquare_page(): %s -> %s" % (input_page, output_page) )
 
     html_doc = load_html( input_page )
     if not html_doc :
-      log.info("waiting for the input file", input_page )
+      log.info( "waiting for the input file %s" % input_page )
       return
 
     soup = BeautifulSoup(html_doc, 'html.parser')
@@ -233,7 +240,6 @@ if __name__ == '__main__':
       rows = table.find_all('tr')
       data = []
       for row_index, row in enumerate(rows):
-        # print len(dqm_data.jobs), row_index, "ROW\n\n\n"
         if row.has_attr("ng-if") :
           if row["ng-if"] != "_show_inline == 'log'" : continue
           logs_parts = row.find_all('dqm-log')
@@ -272,6 +278,8 @@ if __name__ == '__main__':
     return dqm_data
 
   ### parser loop === >
+  processes_pages_n = 0
+  lastlog_timestamp = 0
   while True:
     processes_pages = []
 
@@ -295,16 +303,13 @@ if __name__ == '__main__':
           input_oldrun_files = input_oldrun_files[:min(len(input_oldrun_files), int(cfg["PARSER_MAX_OLDRUNS"]))]
 
           for f, created_time in input_oldrun_files :
-            run_id = f.split("run")[1]
+            run_id   = f.split("run")[1]
             out_name = opaths[i] + "_run" + run_id
             dqm_data_dic[ i ] += [ [run_id, out_name] ]
 
-            if os.path.isfile( out_name ) :
-              timestamp = os.path.getmtime( out_name )
-              now = time.time()
-              if abs(timestamp - now) / 60 / 60 < int(cfg["PARSER_OLDRUNS_UPDATE_TIME"]) :
-                log.debug("skip oldrun " + run_id)
-                continue
+            if not check_lifetime_output(out_name, int(cfg["PARSER_OLDRUNS_UPDATE_TIME"])) :
+              log.debug("skip oldrun " + run_id)
+              continue
 
             log.debug("parse oldrun " + run_id)
             dqm_data = parse_dqmsquare_page( f, out_name )
@@ -329,7 +334,17 @@ if __name__ == '__main__':
       log.warning("parser crashed for current runs ...")
       log.warning(error_log)
 
-    log.info("processes pages %s" % ",".join(processes_pages) )
+    try:
+      processes_pages_n += len( processes_pages )
+      if abs( lastlog_timestamp - time.time() ) > int(cfg["PARSER_LOG_UPDATE_TIME"]) * 60 :
+        lastlog_timestamp = time.time()
+        log.info("processes N pages = %d" % processes_pages_n )
+        processes_pages_n = 0
+      else : log.debug("processes pages %s" % ",".join(processes_pages) )
+    except Exception as error_log:
+      print ("parser crashed for something else (logger, timestamp) ...")
+      print (error_log)
+
     time.sleep( int(cfg["SLEEP_TIME"]) )
 
 

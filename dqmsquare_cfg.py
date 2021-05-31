@@ -23,7 +23,7 @@ cfg["SERVER_LOG_PATH"]                = "log/dqmsquare_server.log"
 
 cfg["ROBBER_BACKEND"] = "selenium"
 cfg["ROBBER_GECKODRIVER_PATH"] = "geckodriver/geckodriver"
-cfg["ROBBER_DEBUG"] = True
+cfg["ROBBER_DEBUG"] = False
 cfg["ROBBER_GRAB_LOGS"] = True
 cfg["ROBBER_GRAB_GRAPHS"] = True
 cfg["ROBBER_GRAB_OLDRUNS"] = True
@@ -37,6 +37,7 @@ cfg["PARSER_DEBUG"] =  False
 cfg["PARSER_RANDOM"] = False
 cfg["PARSER_PARSE_OLDRUNS"] = True
 cfg["PARSER_OLDRUNS_UPDATE_TIME"] = 1 # h
+cfg["PARSER_LOG_UPDATE_TIME"] = 10 # minutes
 cfg["PARSER_MAX_OLDRUNS"]  = 17
 cfg["PARSER_INPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
 cfg["PARSER_OUTPUT_PATHS"] = "tmp/content_parser_production,tmp/content_parser_playback"
@@ -81,8 +82,10 @@ if __name__ == '__main__' :
       config.write(configfile)
 
   cfg_ = load_cfg( 'dqmsquare_mirror.cfg' )
-  print cfg_
-
+  items = list( cfg_.items() )
+  items = sorted(items,key=lambda x : x[0])
+  for item in items:
+    print item
 
 ### get logger ===>
 import logging
@@ -90,7 +93,7 @@ from logging import handlers
 def set_log_handler(logger, path, interval, nlogs, debug_level):
   # add a rotating handler
   formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-  handler = logging.handlers.TimedRotatingFileHandler(path, when='h', interval=interval, backupCount=nlogs)
+  handler = logging.handlers.TimedRotatingFileHandler(path, when='h', interval=int(interval), backupCount=int(nlogs))
   handler.setFormatter(formatter)
   handler.setLevel(logging.INFO)
   logger.setLevel(logging.INFO)
@@ -102,11 +105,20 @@ def set_log_handler(logger, path, interval, nlogs, debug_level):
   logger.addHandler(handler)
   logger.info("create %s log file" % path)
 
+### error logger ===>
+class ErrorLogs():
+  def __init__(self):
+    self.logs = {}
 
-
-
-
-
+  def Check(self, id, log_text):
+    if id not in self.logs :
+      self.logs[ id ] = log_text
+      return True
+  
+    old_log = self.logs[ id ]
+    if old_log == log_text : return False
+    self.logs[ id ] = log_text
+    return True
 
 
 

@@ -1,4 +1,20 @@
 
+##### DQM^2 Mirror Page
+This is a system to grab the information about DQM jobs from DQM^2 site, 
+parse it, removing sensitive information, and show selections outside the P5 are.
+
+The architecture is sequential:
+* dqmsquare_robber.py - uses firefox webdriver (installed on the same pc) & selenium library to load DQM^2 page and execute JavaScript and save a copy to local folder. It is also used to click on *log* button in order to get the logs of the jobs withing the page, click on *graph* button in order to get the link to the graph-images and then save them as separate files into the tmp folder, click on *run number* buttons in order to switch to old runs and grab them too as separate files.
+* dqmsquare_parser.py - parses the files made by dqmsquare_robber.py using based on BeautifulSoupin order to extract job status information and logs, lumis and run information and put it into html files.
+* dqmsquare_server.py - simple server to show html files made by dqmsquare_parser.py
+* dqmsquare_cfg.py - for CFG and common code, run it to produce default .cfg file
+* dqmsquare_deploy.sh - to download some extra software and run PyInstaller. We are using PyInstaller to pack python together with extra libraries (not a firefox!) into single executable ignoring lack of the software at P5 machines.
+
+The work is periodic: dqmsquare_robber.py retrieves the information every X seconds, 
+dqmsquare_parser.py tries to produce new html files every Y seconds,
+JS at dqmsquare_server.py tries to update the content of the page using html files every Z seconds.
+
+##### Requirements
 Tested with:
 PyInstaller: 3.4
 Python: 2.7.14
@@ -6,12 +22,16 @@ Platform: Linux-4.12.14-lp150.12.82-default-x86_64-with-glibc2.2.5
 Bottle: 0.12.19
 Geckodriver: 0.29.1
 
-DONE:
-1) at the very top, it says "DQM [] Mirror". Could you say "DQM2 [] Mirror" instead ? (with superscript "2" if possible)
-2) between the hostname/status display and a table of each client status, we need:
-6) number of dqm client displayed. This number is in () next to the time stamp on top of the client list in P5 DQM
+##### Deployment
+Download repo to your local linux machine. 
+Check dqmsquare_deploy.sh to download extra dependencies and create executables.
+Copy them manually to the P5 machine (fusermount works well for me).
+From the same folder run dqmsquare_server.py at server machine, dqmsquare_robber.py at machine with firefox, dqmsquare_parser.py at any machine.
 
-TODO:
-3) I don't know what really happened, but I got in a mode that displaying "production" mode and "playback" mode alternating every ~ 7 sec or so, automatically.  I was clicking "production" and "playback" , then clicking some log files, when I got into that mode. 
-5) a question: about a run# in playback system: The true run # of the run which playback is looking at is actually not run #501522, but it is whatever you have on a disk feeding into the playback system.
+
+
+
+
+
+
 
