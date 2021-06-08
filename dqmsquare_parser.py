@@ -149,6 +149,12 @@ class DQMPageData( ):
 
     return content
 
+def create_dummy_page( path ):
+  text = "Waiting for the input from grabber ... "
+  file = open( oname,"w" )
+  file.write( text )
+  file.close()
+
 if __name__ == '__main__':
   NAME = "dqmsquare_parser.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
@@ -187,7 +193,7 @@ if __name__ == '__main__':
     html_doc = load_html( input_page )
     if not html_doc :
       log.info( "waiting for the input file %s" % input_page )
-      return
+      return None
 
     soup = BeautifulSoup(html_doc, 'html.parser')
     soup.prettify()
@@ -307,7 +313,7 @@ if __name__ == '__main__':
             out_name = opaths[i] + "_run" + run_id
             dqm_data_dic[ i ] += [ [run_id, out_name] ]
 
-            if not check_lifetime_output(out_name, int(cfg["PARSER_OLDRUNS_UPDATE_TIME"])) :
+            if not check_lifetime_output(out_name, float(cfg["PARSER_OLDRUNS_UPDATE_TIME"])) :
               log.debug("skip oldrun " + run_id)
               continue
 
@@ -327,6 +333,9 @@ if __name__ == '__main__':
     try:
       for i in xrange(N_targets):
         dqm_data = parse_dqmsquare_page( ipaths[i], opaths[i] )
+        if not dqm_data : 
+          create_dummy_page( opaths[i] )
+          continue
         dqm_data.old_runs_pages = dqm_data_dic[ i ]
         dqm_data.Dump(True, True)
         processes_pages += [ ipaths[i] ]
@@ -336,7 +345,7 @@ if __name__ == '__main__':
 
     try:
       processes_pages_n += len( processes_pages )
-      if abs( lastlog_timestamp - time.time() ) > int(cfg["PARSER_LOG_UPDATE_TIME"]) * 60 :
+      if abs( lastlog_timestamp - time.time() ) > float(cfg["PARSER_LOG_UPDATE_TIME"]) * 60 :
         lastlog_timestamp = time.time()
         log.info("processes N pages = %d" % processes_pages_n )
         processes_pages_n = 0

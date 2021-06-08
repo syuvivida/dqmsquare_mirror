@@ -37,22 +37,40 @@ if __name__ == '__main__':
     log.info("setup Selenium WebDriver ...")
     options = Options()
     options.headless = True
-    driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"])
-    log.info("setup Selenium WebDriver ... ok")
+    driver = None
+
+    ### setup browser driver
+    def restart_browser():
+      global driver
+      if driver :
+        log.info("restart_browser(): close Selenium WebDriver ...")
+        try:
+          driver.close()
+          driver.quit()
+        except Exception as error_log:
+          if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "", error_log ) :
+            log.warning( "restart_browser(): can't close the browser, mb it already crashed?" )
+            log.warning( error_log )
+
+      log.info("restart_browser(): setup Selenium WebDriver ...")
+      driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path='./log/geckodriver.log')
+
+      ### open new tabs
+      log.info("restart_browser(): open tabs ...")
+      for i in range(N_targets):
+        driver.execute_script("window.open('about:blank');")
+      if bool(cfg["ROBBER_GRAB_OLDRUNS"]) : driver.execute_script("window.open('about:blank');")
+
 
     ### define scroll hack
     def scroll_shim(driver, object):
       driver.execute_script( 'window.scrollTo(%s,%s);' % (object.location['x'], object.location['y']) )
       driver.execute_script( 'window.scrollBy(0, -120);' )
 
-    ### open new tabs
-    for i in range(N_targets):
-      driver.execute_script("window.open('about:blank');")
-    if bool(cfg["ROBBER_GRAB_OLDRUNS"]) : driver.execute_script("window.open('about:blank');")
-
     ### def DQM^2 site grabber
     def dqm_2_grab(driver, save_prefix):
       if bool( cfg["ROBBER_GRAB_LOGS"] ):
+        log.debug("dqm_2_grab(): load logs ... ")
         all_logs = driver.find_elements_by_xpath("//a[@class='hover-hide btn btn-default btn-xs']")
         for span in all_logs:
           try : 
@@ -61,10 +79,11 @@ if __name__ == '__main__':
               ActionChains(driver).move_to_element(span).click().perform()
           except bool(cfg["ROBBER_DEBUG"]) or Exception as error_log:
             if error_logs.Check( "click on log button", error_log ) :
-              log.warning( "cant click on log button" )
+              log.warning( "dqm_2_grab(): cant click on log button" )
               log.warning( error_log )
 
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
+        log.debug("dqm_2_grab(): load graphs ... ")
         canvases = driver.find_elements_by_css_selector("canvas")
         for j, canv in enumerate(canvases):
           opath_canv = save_prefix + "_canv" + str(j)
@@ -77,7 +96,7 @@ if __name__ == '__main__':
                 f.write(canvas_png)
             except Exception as error_log:
               if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "cant load and save image", error_log ) :
-                log.warning( "cant load and save image %s N tries left = %d" % ( opath_canv, n_tries) )
+                log.warning( "dqm_2_grab(): can't load and save image %s N tries left = %d" % ( opath_canv, n_tries) )
                 log.warning( error_log )
               n_tries -=1
               time.sleep( int(cfg["SLEEP_TIME"]) )
@@ -85,13 +104,14 @@ if __name__ == '__main__':
             finally :
               break
 
+      log.debug("dqm_2_grab(): return data ... ")
       return driver.page_source.encode('utf-8')
 
     ### get old runs time-to-time
     def get_old_runs(driver, opath, link):
       if not bool(cfg["ROBBER_GRAB_OLDRUNS"]) : return
       driver.switch_to_window( driver.window_handles[-1] )
-      log.debug( "load link %s" % link )
+      log.debug( "get_old_runs(): load link %s ..." % link )
       driver.get( link )
       time.sleep( int(cfg["SLEEP_TIME"]) )
 
@@ -125,17 +145,18 @@ if __name__ == '__main__':
           if os.path.isfile( output_path ) :
             timestamp = os.path.getmtime( output_path )
             now = time.time()
-            if abs(timestamp - now) / 60 / 60 < int(cfg["ROBBER_OLDRUNS_UPDATE_TIME"]) :
-              log.debug("skip oldrun link: " + run_link.text)
+            if abs(timestamp - now) / 60 / 60 < float(cfg["ROBBER_OLDRUNS_UPDATE_TIME"]) :
+              log.debug("get_old_runs(): skip oldrun link: " + run_link.text)
               continue
 
           ### click and load content
+          log.debug( "process oldrun link: " + run_link.text)
           try:
             scroll_shim( driver, run_link )
             ActionChains(driver).move_to_element(run_link).click().perform()
             time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
             content = dqm_2_grab(driver, output_path )
-            log.debug( "get content from old run " + sites[i] + "\"" + content[:100] + "...\"" )
+            log.debug( "get_old_runs(): get content from old run " + sites[i] + "\"" + content[:100] + "...\"" )
             save_site( content, output_path )
           except Exception as error_log:
             if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "get_old_runs(): can't reach %s skip" % sites[i], error_log ) :
@@ -165,6 +186,8 @@ if __name__ == '__main__':
       return list_good_sites
 
     ### loop
+    reload_driver = False
+    restart_browser()
     n_iters = int(cfg["ROBBER_RELOAD_NITERS"]) + 1
     log.info("loop ...")
     while True:
@@ -185,7 +208,7 @@ if __name__ == '__main__':
           driver.switch_to_window( driver.window_handles[i] )
           content = dqm_2_grab(driver, opaths[i])
 
-          log.debug( "get content from " + sites[i] + "\"" + content[:100] + "...\"" )
+          log.debug( "get content from " + sites[i] + " - \"" + content[:100] + "...\"" )
           save_site( content, opaths[i] )
 
       except KeyboardInterrupt:
@@ -194,7 +217,22 @@ if __name__ == '__main__':
         if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "grabber crashed", error_log ) :
           log.warning("grabber crashed ...")
           log.warning(error_log)
+          reload_driver = True
 
+      while reload_driver:
+        log.info("going to reload driver ... ")
+        try:
+          restart_browser()
+        except Exception as error_log:
+          log.warning("not able to reload ... sleep more")
+          log.warning(error_log)
+          time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
+          continue
+        log.info("going to reload driver ... ok")
+        n_iters = int(cfg["ROBBER_RELOAD_NITERS"]) + 1
+        reload_driver = False
+
+      log.debug( "z-Z-z" )
       time.sleep( int(cfg["SLEEP_TIME"]) )
 
     driver.close()

@@ -26,10 +26,28 @@ def get_static(filename):
 @route('/tmp/tmp/<filename>')
 def get_tmp(filename):
   content = static_file(filename, root='./tmp/')
-  print( content )
   return static_file(filename, root='./tmp/')
 
+@route('/log/<filename>')
+@route('/tmp/log/<filename>')
+def get_tmp(filename):
+  content = static_file(filename, root='./log/')
+  return static_file(filename, root='./log/')
+
+### wrapper for logs
+from functools import wraps
+from datetime import datetime
+def log_to_logger(fn):
+  @wraps(fn)
+  def _log_to_logger(*args, **kwargs):
+    request_time = datetime.now()
+    actual_response = fn(*args, **kwargs)
+    log.info('%s %s %s %s %s' % (bottle.request.remote_addr, request_time, bottle.request.method, bottle.request.url, bottle.response.status))
+    return actual_response
+  return _log_to_logger
+
 def start_server( cfg ):
+  bottle.install( log_to_logger )
   # remember to remove reloader=True and debug(True) when you move your
   # application from development to a productive environment
   bottle.debug(bool(cfg["SERVER_DEBUG"]))
@@ -46,7 +64,7 @@ if __name__ == '__main__':
 
     if cfg["SERVER_LOCAL"] :  
       content = content.replace( "%PATH_TO_PRODUCTION_PAGE%", cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] )
-      content = content.replace( "%PATH_TO_PLAYBACK_PAGE%",   cfg["SERVER_PATH_TO_PLAYBACK_PAGE"] )
+      content = content.replace( "%PATH_TO_PLAYBACK_PAGE%",   cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   )
     else : 
       content = content.replace( "%PATH_TO_PRODUCTION_PAGE%",  "/dqm/dqm-square/" + cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] )
       content = content.replace( "%PATH_TO_PLAYBACK_PAGE%",    "/dqm/dqm-square/" + cfg["SERVER_PATH_TO_PLAYBACK_PAGE"] )

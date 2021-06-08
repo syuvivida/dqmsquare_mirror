@@ -38,23 +38,45 @@ else
 fi
 
 ### BUILD ###
-echo "dqmsquare_deploy.sh: BUILD ..."
-cd $sfolder
-cp dqmsquare_robber.py $build_folder/.
-cp dqmsquare_parser.py $build_folder/.
-cp dqmsquare_cfg.py    $build_folder/.
-cd $build_folder
+if [ $1 == "build" ] ; then
+  echo "dqmsquare_deploy.sh: BUILD ..."
+  cd $sfolder
+  cp dqmsquare_robber.py $build_folder/.
+  cp dqmsquare_parser.py $build_folder/.
+  cp dqmsquare_cfg.py    $build_folder/.
+  cd $build_folder
 
-python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber.py
-python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_parser.py
+  python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber.py
+  python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_parser.py
 
-cp dist/dqmsquare_robber $sfolder/.
-cp dist/dqmsquare_parser $sfolder/.
+  cp dist/dqmsquare_robber $sfolder/.
+  cp dist/dqmsquare_parser $sfolder/.
+fi
 
 # create def cfg
 cd $sfolder
 python dqmsquare_cfg.py
 
+# pack into rpm
+echo "dqmsquare_deploy.sh: RPM ..." "s/__PDQM__/"$RPM_INSTALL_PREFIX"/g"
+mkdir -p $sfolder/RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
+
+cp -r $sfolder/static $sfolder/RPMBUILD/SOURCES/.
+cp -r $sfolder/bottle $sfolder/RPMBUILD/SOURCES/.
+cp -r $sfolder/geckodriver $sfolder/RPMBUILD/SOURCES/.
+cp -r $sfolder/services $sfolder/RPMBUILD/SOURCES/.
+
+cp $sfolder/*.py $sfolder/RPMBUILD/SOURCES/.
+cp $sfolder/dqmsquare_parser $sfolder/RPMBUILD/SOURCES/.
+cp $sfolder/dqmsquare_robber $sfolder/RPMBUILD/SOURCES/.
+
+rpmbuild --define "_topdir "$sfolder"/RPMBUILD" -bb dqmsquare_mirror.spec
+
+cp $sfolder/RPMBUILD/RPMS/x86_64/* .
 
 
- 
+
+
+
+
+
