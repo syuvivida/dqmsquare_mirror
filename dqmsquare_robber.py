@@ -87,6 +87,9 @@ if __name__ == '__main__':
         canvases = driver.find_elements_by_css_selector("canvas")
         for j, canv in enumerate(canvases):
           opath_canv = save_prefix + "_canv" + str(j)
+          # remove outdate canvase in order to not show it accidentally
+          dqmsquare_cfg.delete_file( opath_canv, log )
+          
           n_tries = 5
           while n_tries > 0:
             try : 
@@ -102,6 +105,7 @@ if __name__ == '__main__':
               time.sleep( int(cfg["SLEEP_TIME"]) )
               continue
             finally :
+              log.debug( "dqm_2_grab(): save new graphs %s" % opath_canv )
               break
 
       log.debug("dqm_2_grab(): return data ... ")
@@ -135,9 +139,18 @@ if __name__ == '__main__':
         all_runs_links = driver.find_elements_by_xpath( '//a[@class="label-run label label-info ng-binding ng-scope"]' )
         has_new_runs = False
 
+        run_link_sorted = []
         for run_link in all_runs_links :
           if run_link.text in runs_done : continue
           if not run_link.text : continue
+          if not run_link.text.isdigit() : continue
+          run_link_sorted += [ run_link ]
+        run_link_sorted = sorted( run_link_sorted, key=lambda x : -int(x.text) )
+
+        # skip first oldrun which is ongoing
+        if len(run_link_sorted) : run_link_sorted = run_link_sorted[1:]
+
+        for run_link in run_link_sorted :
           has_new_runs = True
           output_path = opath + "_run" + run_link.text
 

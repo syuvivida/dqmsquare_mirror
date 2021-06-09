@@ -50,6 +50,7 @@ Several options:
 ##### Usefull extras
 * Bottle built-in default server is not for a heavy server load, just for 3-5 shifters
 * Number of logs created by dqmsquare_robber/dqmsquare_parser/dqmsquare_server is limited by TimedRotatingFileHandler
+* dqmsquare_robber.py spawn lot of firefox subprocesses. In case of the dqmsquare_robber process is killed they may persist, requiring the manual killing to free the resources.
 *  to build  
  ./dqmsquare_deploy.sh build
 * at p5 for installation, for example  
@@ -59,7 +60,7 @@ Several options:
 Some ideas for future development:
 * geckodriver log cleaner  
 * working tmp dir cleaning   
-* switch to python3
-
+* switch to python3  
+* help page  
 
 

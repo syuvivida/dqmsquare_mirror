@@ -21,6 +21,16 @@ cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/dqmsquare_server.log"
 
+cfg["PARSER_DEBUG"] =  True
+cfg["PARSER_RANDOM"] = False
+cfg["PARSER_PARSE_OLDRUNS"] = True
+cfg["PARSER_OLDRUNS_UPDATE_TIME"] = 1. # h float
+cfg["PARSER_LOG_UPDATE_TIME"] = 10. # minutes float
+cfg["PARSER_MAX_OLDRUNS"]  = 17 # int
+cfg["PARSER_INPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
+cfg["PARSER_OUTPUT_PATHS"] = "tmp/content_parser_production,tmp/content_parser_playback"
+cfg["PARSER_LOG_PATH"]     = "log/dqmsquare_parser.log"
+
 cfg["ROBBER_BACKEND"] = "selenium"
 cfg["ROBBER_GECKODRIVER_PATH"] = "geckodriver/geckodriver"
 cfg["ROBBER_DEBUG"] = True
@@ -32,16 +42,6 @@ cfg["ROBBER_OUTPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_
 cfg["ROBBER_RELOAD_NITERS"] = 100
 cfg["ROBBER_LOG_PATH"]      = "log/dqmsquare_robber.log"
 cfg["ROBBER_OLDRUNS_UPDATE_TIME"] = 2. # h, float
-
-cfg["PARSER_DEBUG"] =  False
-cfg["PARSER_RANDOM"] = False
-cfg["PARSER_PARSE_OLDRUNS"] = True
-cfg["PARSER_OLDRUNS_UPDATE_TIME"] = 1. # h float
-cfg["PARSER_LOG_UPDATE_TIME"] = 10. # minutes float
-cfg["PARSER_MAX_OLDRUNS"]  = 17 # int
-cfg["PARSER_INPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
-cfg["PARSER_OUTPUT_PATHS"] = "tmp/content_parser_production,tmp/content_parser_playback"
-cfg["PARSER_LOG_PATH"]     = "log/dqmsquare_parser.log"
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):
@@ -119,6 +119,26 @@ class ErrorLogs():
     if old_log == log_text : return False
     self.logs[ id ] = log_text
     return True
+
+### Other
+import os
+def delete_file( path_to_file, log ):
+  try:
+    if not os.path.exists( path_to_file ) : return False
+    if not os.path.isfile( path_to_file ) : return False
+    os.remove( path_to_file )
+  except:
+    log.warning( "delete_file(): can't delete %s" % path_to_file )
+    return False
+
+  log.debug( "delete_file(): remove file %s" % path_to_file )
+  return True
+
+
+
+
+
+
 
 
 

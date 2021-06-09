@@ -1,5 +1,5 @@
 Name:       dqmsquare_mirror
-Version:    1.0.0
+Version:    1.0.2
 Release:    1
 Summary:    DQM^2 grabber/parser/server
 License:    GPL

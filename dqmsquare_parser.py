@@ -44,6 +44,15 @@ class DQMPageData( ):
     txt = name.split("-")
     return txt[0] + "-...-" + txt[-1].split(".")[0]
 
+  def CountStates(self):
+    R, G, Y = 0, 0, 0
+    for job in self.jobs:
+      state = job[3]
+      if "R" == state   : G+=1
+      elif state == "0" : Y+=1
+      else              : R+=1
+    return R, G, Y
+
   def AddJob(self, time, ltime, sname, state, tag, lumi, rss, nevents, logs ):
     # self.jobs += [ {"time" : time, "ltime" : ltime, "sname" : sname, "state" : state, "tag" : tag, "lumi" : lumi, "rss" : rss, "nevents" : nevents} ]
     self.jobs += [ [time, ltime, self.GetServerName( sname ), state, tag, lumi, rss, nevents, logs] ]
@@ -67,18 +76,22 @@ class DQMPageData( ):
   def Dump(self, write_out=True, write_out_logs=True):
     content = '<p style="clear:both;margin-bottom:5px"></p>'
 
-    ### Run
+    ### run
     content += '<p style="margin-bottom:1px"> '
     content += 'Run: '
     content += '<strong>' + str(self.run_number) 
     if self.origin_run_number : content += ' (' + str(self.origin_run_number) + ')'
     content += '</strong> &nbsp;&nbsp;&nbsp;&nbsp;'
 
-    ### old Runs links:
+    ### old runs links:
     if self.old_runs_pages : 
       content += 'Old runs: '
-      for run_id, link in self.old_runs_pages:
-        content += '<a href="'+link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
+      for run_id, link in self.old_runs_pages :
+        if str(run_id) == str(self.run_number) : continue # extra skip the duplicate of on-going run in this list
+        if link : 
+          content += '<a href="'+link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
+        else : 
+          content += '<strong>' + run_id + '</strong>&nbsp;'
       content += '\n\n'
 
     ### timestamps
@@ -180,10 +193,14 @@ if __name__ == '__main__':
     except:
       return ""
 
-  def check_lifetime_output(out_name, threshold) :
+  # return True if [1. input file yuanger than output file] [2. output file yuanger than threshold]
+  def check_lifetime_output(inp_name, out_name, threshold) :
     if not os.path.isfile( out_name ) : return True
     timestamp = os.path.getmtime( out_name )
     now = time.time()
+    if os.path.isfile( inp_name ):
+      timestamp_input = os.path.getmtime( inp_name )
+      if timestamp_input > timestamp : return True
     if abs(timestamp - now) / 60 / 60 < threshold: return False
     return True
     
@@ -290,7 +307,7 @@ if __name__ == '__main__':
     processes_pages = []
 
     ### targets old runs ...
-    dqm_data_dic = defaultdict( list )
+    old_runs_pages_dic = defaultdict( list )
     if bool(cfg["PARSER_PARSE_OLDRUNS"]) : 
       try:
         for i in xrange(N_targets):
@@ -311,20 +328,30 @@ if __name__ == '__main__':
           for f, created_time in input_oldrun_files :
             run_id   = f.split("run")[1]
             out_name = opaths[i] + "_run" + run_id
-            dqm_data_dic[ i ] += [ [run_id, out_name] ]
 
-            if not check_lifetime_output(out_name, float(cfg["PARSER_OLDRUNS_UPDATE_TIME"])) :
+            if not check_lifetime_output(f, out_name, float(cfg["PARSER_OLDRUNS_UPDATE_TIME"])) :
               log.debug("skip oldrun " + run_id)
+              old_runs_pages_dic[ i ] += [ [run_id, out_name] ]
               continue
 
             log.debug("parse oldrun " + run_id)
             dqm_data = parse_dqmsquare_page( f, out_name )
+
+            # IF past run still has ongoing jobs due to delay of robber THAN delete the source file
+            print run_id, dqm_data.CountStates()
+            if dqm_data.CountStates()[1] : 
+              dqmsquare_cfg.delete_file( f, log )
+              # old_runs_pages_dic[ i ] += [ [run_id, None] ] # add dummy link
+              log.debug("parse oldrun " + run_id)
+              continue
+
+            old_runs_pages_dic[ i ] += [ [run_id, out_name] ]
             dqm_data.Dump(True, True)
             processes_pages += [ f ]
 
-          if i in dqm_data_dic:
-            data = sorted( dqm_data_dic[ i ], key=lambda x : -int(x[0]) )
-            dqm_data_dic[ i ] = data[1:]
+          if i in old_runs_pages_dic:
+            old_runs_pages_dic[ i ] = sorted( old_runs_pages_dic[ i ], key=lambda x : -int(x[0]) )
+
       except Exception as error_log:
         log.warning("parser crashed for old runs ...")
         log.warning(error_log)
@@ -336,7 +363,7 @@ if __name__ == '__main__':
         if not dqm_data : 
           create_dummy_page( opaths[i] )
           continue
-        dqm_data.old_runs_pages = dqm_data_dic[ i ]
+        dqm_data.old_runs_pages = old_runs_pages_dic[ i ]
         dqm_data.Dump(True, True)
         processes_pages += [ ipaths[i] ]
     except Exception as error_log:
