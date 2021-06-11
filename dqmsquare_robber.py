@@ -22,9 +22,13 @@ if __name__ == '__main__':
 
   sites  = cfg["ROBBER_TARGET_SITES"].split(",")
   opaths = cfg["ROBBER_OUTPUT_PATHS"].split(",")
+  parser_paths = cfg["PARSER_OUTPUT_PATHS"].split(",")
   N_targets = len(sites)
   if len(sites) != len(opaths) :
     log.error("len(ROBBER_TARGET_SITES) != len(ROBBER_OUTPUT_PATHS) %d %d; exit" % ( len(sites), len(opaths) ) )
+    exit()
+  if len(parser_paths) != len(opaths):
+    log.error("len(PARSER_INPUT_PATHS) != len(PARSER_OUTPUT_PATHS) %d %d; exit" % ( len(parser_paths), len(opaths) ) )
     exit()
 
   def save_site( content, path ):
@@ -68,7 +72,7 @@ if __name__ == '__main__':
       driver.execute_script( 'window.scrollBy(0, -120);' )
 
     ### def DQM^2 site grabber
-    def dqm_2_grab(driver, save_prefix):
+    def dqm_2_grab(driver, save_prefix, delete_old_canvases=False):
       if bool( cfg["ROBBER_GRAB_LOGS"] ):
         log.debug("dqm_2_grab(): load logs ... ")
         all_logs = driver.find_elements_by_xpath("//a[@class='hover-hide btn btn-default btn-xs']")
@@ -83,13 +87,16 @@ if __name__ == '__main__':
               log.warning( error_log )
 
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
+        if delete_old_canvases : 
+          # remove outdate canvases to not show accidentally
+          for j in xrange(9): # any big number
+            opath_canv = dqmsquare_cfg.get_TMP_robber_canvas_name(save_prefix, str(j))
+            dqmsquare_cfg.delete_file( opath_canv, log )
+
         log.debug("dqm_2_grab(): load graphs ... ")
         canvases = driver.find_elements_by_css_selector("canvas")
         for j, canv in enumerate(canvases):
-          opath_canv = save_prefix + "_canv" + str(j)
-          # remove outdate canvase in order to not show it accidentally
-          dqmsquare_cfg.delete_file( opath_canv, log )
-          
+          opath_canv = dqmsquare_cfg.get_TMP_robber_canvas_name(save_prefix, str(j))
           n_tries = 5
           while n_tries > 0:
             try : 
@@ -112,7 +119,7 @@ if __name__ == '__main__':
       return driver.page_source.encode('utf-8')
 
     ### get old runs time-to-time
-    def get_old_runs(driver, opath, link):
+    def get_old_runs(driver, opath, link, parser_info={}):
       if not bool(cfg["ROBBER_GRAB_OLDRUNS"]) : return
       driver.switch_to_window( driver.window_handles[-1] )
       log.debug( "get_old_runs(): load link %s ..." % link )
@@ -152,15 +159,30 @@ if __name__ == '__main__':
 
         for run_link in run_link_sorted :
           has_new_runs = True
-          output_path = opath + "_run" + run_link.text
+          output_path = dqmsquare_cfg.get_TMP_robber_page_name( opath, run_link.text )
+
+          ### check if parser output in a bad state, than force reload
+          n_ongoing_runs = 0
+          try:
+            for key, item_dic in parser_info.items():
+              if run_link.text not in key : continue # same run number in the names of tmp robber and parser names
+              if item_dic.has_key("States G") :
+                n_ongoing_runs = int( item_dic["States G"] )
+          except Exception as error_log:
+            if bool(cfg["ROBBER_DEBUG"]) :
+              log.warning( "get_old_runs(): can't get correctly parser state, ignore parser info" )
+              log.warning( error_log )
 
           ### check if output already exist
-          if os.path.isfile( output_path ) :
-            timestamp = os.path.getmtime( output_path )
-            now = time.time()
-            if abs(timestamp - now) / 60 / 60 < float(cfg["ROBBER_OLDRUNS_UPDATE_TIME"]) :
-              log.debug("get_old_runs(): skip oldrun link: " + run_link.text)
-              continue
+          if not n_ongoing_runs :
+            if os.path.isfile( output_path ) :
+              timestamp = os.path.getmtime( output_path )
+              now = time.time()
+              if abs(timestamp - now) / 60 / 60 < float(cfg["ROBBER_OLDRUNS_UPDATE_TIME"]) :
+                log.debug("get_old_runs(): skip oldrun link: " + run_link.text)
+                continue
+          else : 
+            log.debug( "force reload oldrun link due to the parser state: " + run_link.text)
 
           ### click and load content
           log.debug( "process oldrun link: " + run_link.text)
@@ -168,7 +190,7 @@ if __name__ == '__main__':
             scroll_shim( driver, run_link )
             ActionChains(driver).move_to_element(run_link).click().perform()
             time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
-            content = dqm_2_grab(driver, output_path )
+            content = dqm_2_grab(driver, output_path, delete_old_canvases=False )
             log.debug( "get_old_runs(): get content from old run " + sites[i] + "\"" + content[:100] + "...\"" )
             save_site( content, output_path )
           except Exception as error_log:
@@ -205,21 +227,29 @@ if __name__ == '__main__':
     log.info("loop ...")
     while True:
       try:
+        ### reload all pages time-to-time
         n_iters += 1
         if n_iters > int(cfg["ROBBER_RELOAD_NITERS"]) or not sum(list_good_sites): 
           n_iters = 0
           list_good_sites = reload_pages()
+          check_old_sites = True
 
-          for i in range(N_targets):
-            if not list_good_sites[i] : continue
-            log.debug( "get old run contents from " + sites[i] )
-            get_old_runs(driver, opaths[i], sites[i])
+        ### get content from old sites
+        for i in range(N_targets):
+          parser_page_info = dqmsquare_cfg.get_parser_info( parser_paths[i] )
+          log.debug( "parser metacontent %s " % str(parser_page_info) )
 
+          if not list_good_sites[i] : continue
+          parser_page_info = dqmsquare_cfg.get_parser_info( parser_paths[i] )
+          log.debug( "get old run contents from " + sites[i] )
+          get_old_runs(driver, opaths[i], sites[i], parser_page_info)
+
+        ### get content from active sites
         for i in range(N_targets):
           if not list_good_sites[i] : continue
 
           driver.switch_to_window( driver.window_handles[i] )
-          content = dqm_2_grab(driver, opaths[i])
+          content = dqm_2_grab(driver, opaths[i], delete_old_canvases=True)
 
           log.debug( "get content from " + sites[i] + " - \"" + content[:100] + "...\"" )
           save_site( content, opaths[i] )

@@ -1,5 +1,5 @@
 Name:       dqmsquare_mirror
-Version:    1.0.2
+Version:    1.0.7
 Release:    1
 Summary:    DQM^2 grabber/parser/server
 License:    GPL
@@ -38,7 +38,7 @@ cp ../SOURCES/services/dqmsquare_mirror@.service   $RPM_BUILD_ROOT/etc/systemd/s
 sed -i "s%__PDQM__%"$RPM_INSTALL_PREFIX"%g" /usr/bin/dqmsquare_mirror_wrapper.sh
 echo "Install to \""$RPM_INSTALL_PREFIX"\""
 echo "Done!"
-echo "Start it with: \n systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service"
+echo "Start it with: systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service"
 
 
 

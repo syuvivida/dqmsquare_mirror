@@ -1,5 +1,6 @@
 # P.S.~Mandrik, IHEP, https://github.com/pmandrik
 
+import os
 import ConfigParser
 
 ### default values === >
@@ -9,6 +10,8 @@ cfg_SECTION = 'OPTIONS'
 
 cfg["SLEEP_TIME"] = 5 #sec, int
 cfg["SLEEP_TIME_LONG"] = 30 #sec, int
+cfg["TMP_FILES_LIFETIME"] = 100 # h, int
+cfg["TMP_CLEAN_FILES"] = False
 cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
 cfg["LOGGER_MAX_N_LOG_FILES"] = 100 # int
 
@@ -120,8 +123,74 @@ class ErrorLogs():
     self.logs[ id ] = log_text
     return True
 
+### TMP output naming convention
+# robber will create:
+# ROBBER_OUTPUT_PATHS + get_TMP_robber_canvas_name(ROBBER_OUTPUT_PATHS, index)
+# get_TMP_robber_page_name(ROBBER_OUTPUT_PATHS, run_index) + get_TMP_robber_canvas_name(get_TMP_robber_page_name(ROBBER_OUTPUT_PATHS, run_index), index)
+def get_TMP_robber_page_name( path, run_index ):
+  return path + "ROBBER" + "_run" + str(run_index)
+
+def get_TMP_robber_canvas_name( path, index ):
+  return path + "ROBBER" + "_canv" + str(index)
+
+def is_TMP_robber_page( path, item ):
+  if path == item : return True
+  if not "ROBBER" in item: return False
+  if "canv"   in item: return False
+  if get_TMP_robber_page_name(path, "") not in item : return False
+  return True
+
+def is_TMP_robber_canvas_name( path, item ):
+  if not "ROBBER" in item: return False
+  if get_TMP_robber_canvas_name(path, "") not in item : return False
+  return True
+
+def get_TMP_robber_page_run( path ):
+  run_id   = path.split("run")[1]
+  return run_id
+
+# parser will create ... 
+def get_TMP_parser_page_name( path, run_index ):
+  return path + "PARSER" + "_run" + str(run_index)
+
+def get_TMP_parser_log_name( path, index ):
+  return path + "PARSER" + "_job" + str(index) + ".log"
+
+def is_TMP_parser_page( path, item ):
+  if path == item : return True
+  if not "PARSER" in item: return False
+  if "job" in item: return False
+  if "log" in item: return False
+  if not get_TMP_parser_page_name(path, "") in item : return False
+  return True
+
+### parser=>rober backward communication
+def get_parser_info( path_to_parser_output_page ):
+  dir_name = os.path.dirname( path_to_parser_output_page )
+  info_dic = {}
+  for item in os.listdir( dir_name ) : 
+    f = os.path.join(dir_name, item)
+    if not is_TMP_parser_page(path_to_parser_output_page, f) : continue
+    page_dic = {}
+    text = ""
+    try:
+      ifile = open( f,"r" )
+      text = ifile.read( )
+      ifile.close()
+    except: pass
+
+    try:
+      for line in text.split("\n"):
+        if "<!--" not in line: continue
+        content = line[len("<!--"):-len("-->")]
+        content = content.split(":")
+        page_dic[ content[0] ] = content[1]
+    except: pass
+
+    info_dic[f] = page_dic
+  return info_dic
+
 ### Other
-import os
 def delete_file( path_to_file, log ):
   try:
     if not os.path.exists( path_to_file ) : return False
@@ -134,6 +203,15 @@ def delete_file( path_to_file, log ):
   log.debug( "delete_file(): remove file %s" % path_to_file )
   return True
 
+def clean_folder(path_to_outfile, threshold, log):
+  log.info( "clean_folder(): remove old files for %s" % path_to_outfile )
+  dir_name = os.path.dirname(self.path_to_outfile)
+  for item in os.listdir( dir_name ) : 
+    f = os.path.join(dir_name, item)
+    timestamp = os.path.getmtime( f )
+    now = time.time()
+    if abs(timestamp - now) / 60 / 60 < threshold : continue
+    delete_file( f, log )
 
 
 

@@ -29,7 +29,7 @@ class DQMPageData( ):
     self.colors = {"G" : "#52BE80", "R" : "#EC7063", "Y" : "#F4D03F", "title" : "#2471a3" }
 
   def GetJoblogFileName(self, index):
-    name = self.output_file + "_job" + str(index) + ".log"
+    name = dqmsquare_cfg.get_TMP_parser_log_name(self.output_file, index)
     link = self.link_prefix + name
     return name, link
 
@@ -74,7 +74,13 @@ class DQMPageData( ):
     pass
 
   def Dump(self, write_out=True, write_out_logs=True):
-    content = '<p style="clear:both;margin-bottom:5px"></p>'
+    content = '<p style="clear:both;margin-bottom:5px"></p>\n'
+
+    # IF past run still has ongoing jobs due to delay of robber THAN delete the source file
+    state_R, state_G, state_Y = self.CountStates()
+    content += '<!--States R:' + str(state_R) + '-->\n'
+    content += '<!--States G:' + str(state_G) + '-->\n'
+    content += '<!--States Y:' + str(state_Y) + '-->\n\n'
 
     ### run
     content += '<p style="margin-bottom:1px"> '
@@ -117,9 +123,9 @@ class DQMPageData( ):
     content += '<p style="margin-bottom:1px"> '
     content += 'Known cmssw jobs: <strong>' + str(len(self.jobs)) + '</strong> &nbsp;&nbsp;&nbsp;&nbsp;'
     content += 'Legend: '
-    content += '<strong><span style="background-color:' + self.colors["G"] + '"> &nbsp;&nbsp; running ' + str(len([attr for attr in self.jobs_attr if self.colors["G"] in attr['row_attr']])) + ' &nbsp;&nbsp; </span></strong>'
-    content += '<strong><span style="background-color:' + self.colors["Y"] + '"> &nbsp;&nbsp; stopped ' + str(len([attr for attr in self.jobs_attr if self.colors["Y"] in attr['row_attr']])) + ' &nbsp;&nbsp; </span></strong>'
-    content += '<strong><span style="background-color:' + self.colors["R"] + '"> &nbsp;&nbsp; crashed ' + str(len([attr for attr in self.jobs_attr if self.colors["R"] in attr['row_attr']])) + '&nbsp;&nbsp; </span></strong>'
+    content += '<strong><span style="background-color:' + self.colors["G"] + '"> &nbsp;&nbsp; running ' + str(state_G) + ' &nbsp;&nbsp; </span></strong>'
+    content += '<strong><span style="background-color:' + self.colors["Y"] + '"> &nbsp;&nbsp; stopped ' + str(state_Y) + ' &nbsp;&nbsp; </span></strong>'
+    content += '<strong><span style="background-color:' + self.colors["R"] + '"> &nbsp;&nbsp; crashed ' + str(state_R) + '&nbsp;&nbsp; </span></strong>'
     content += ' </p>\n'
 
     ### jobs table
@@ -142,8 +148,7 @@ class DQMPageData( ):
       dir_name = os.path.dirname(self.input_file)
       fname    = os.path.basename(self.input_file)
       for item in os.listdir( dir_name ) : 
-        if not "canv" in item : continue
-        if  fname + "_canv" not in item : continue
+        if not dqmsquare_cfg.is_TMP_robber_canvas_name( fname, item ) : continue
         content += "<img src=" + os.path.join(dir_name, item) + ">\n"
 
     ### write out body
@@ -164,7 +169,7 @@ class DQMPageData( ):
 
 def create_dummy_page( path ):
   text = "Waiting for the input from grabber ... "
-  file = open( oname,"w" )
+  file = open( path, "w" )
   file.write( text )
   file.close()
 
@@ -316,9 +321,8 @@ if __name__ == '__main__':
 
           input_oldrun_files = []
           for item in os.listdir( dir_name ) : 
-            if item.endswith(".png") : continue
-            if not fname + "_run" in item : continue
-            if "canv" in item : continue
+            if item == fname : continue # skip ongoing runs here
+            if not dqmsquare_cfg.is_TMP_robber_page( fname, item ) : continue
             f = os.path.join(dir_name, item)
             input_oldrun_files += [ [f, os.path.getmtime( f )] ]
 
@@ -326,25 +330,16 @@ if __name__ == '__main__':
           input_oldrun_files = input_oldrun_files[:min(len(input_oldrun_files), int(cfg["PARSER_MAX_OLDRUNS"]))]
 
           for f, created_time in input_oldrun_files :
-            run_id   = f.split("run")[1]
-            out_name = opaths[i] + "_run" + run_id
+            run_id   = dqmsquare_cfg.get_TMP_robber_page_run( f )
+            out_name = dqmsquare_cfg.get_TMP_parser_page_name( opaths[i], run_id )
 
             if not check_lifetime_output(f, out_name, float(cfg["PARSER_OLDRUNS_UPDATE_TIME"])) :
-              log.debug("skip oldrun " + run_id)
+              log.debug("skip oldrun " + str(run_id))
               old_runs_pages_dic[ i ] += [ [run_id, out_name] ]
               continue
 
-            log.debug("parse oldrun " + run_id)
+            log.debug("parse oldrun " + str(run_id))
             dqm_data = parse_dqmsquare_page( f, out_name )
-
-            # IF past run still has ongoing jobs due to delay of robber THAN delete the source file
-            print run_id, dqm_data.CountStates()
-            if dqm_data.CountStates()[1] : 
-              dqmsquare_cfg.delete_file( f, log )
-              # old_runs_pages_dic[ i ] += [ [run_id, None] ] # add dummy link
-              log.debug("parse oldrun " + run_id)
-              continue
-
             old_runs_pages_dic[ i ] += [ [run_id, out_name] ]
             dqm_data.Dump(True, True)
             processes_pages += [ f ]
@@ -353,6 +348,7 @@ if __name__ == '__main__':
             old_runs_pages_dic[ i ] = sorted( old_runs_pages_dic[ i ], key=lambda x : -int(x[0]) )
 
       except Exception as error_log:
+        print error_log
         log.warning("parser crashed for old runs ...")
         log.warning(error_log)
 
@@ -366,10 +362,19 @@ if __name__ == '__main__':
         dqm_data.old_runs_pages = old_runs_pages_dic[ i ]
         dqm_data.Dump(True, True)
         processes_pages += [ ipaths[i] ]
+
+        if bool(cfg["TMP_CLEAN_FILES"]) :
+          try:
+            dqmsquare_cfg.clean_folder( ipaths[i], int(cfg["SLEEP_TIME"]), log ) # robber i-th tmp folder
+            dqmsquare_cfg.clean_folder( opaths[i], int(cfg["SLEEP_TIME"]), log ) # parser i-th tmp folder
+          except Exception as error_log:
+            log.warning("parser crashed for cleaning tmp folders ...")
+            log.warning(error_log)
     except Exception as error_log:
       log.warning("parser crashed for current runs ...")
       log.warning(error_log)
 
+    ### print out ...
     try:
       processes_pages_n += len( processes_pages )
       if abs( lastlog_timestamp - time.time() ) > float(cfg["PARSER_LOG_UPDATE_TIME"]) * 60 :
