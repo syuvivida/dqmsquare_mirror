@@ -44,6 +44,7 @@ Several options:
    From the same folder run dqmsquare_server.py at server machine, dqmsquare_robber.py at machine with firefox, dqmsquare_parser.py at any machine..
 2. .. or copy RPM created by dqmsquare_deploy.sh to the P5 machine and install.  
    sudo rpm -i dqmsquare_mirror-1.0.0-1.x86_64.rpm  
+   sudo systemctl enable dqmsquare_mirror@robber.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service  
    sudo systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service  
    You can also install this locally with --prefix=PATH option.
 
