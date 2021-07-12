@@ -15,7 +15,7 @@ cfg["TMP_CLEAN_FILES"] = False
 cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
 cfg["LOGGER_MAX_N_LOG_FILES"] = 100 # int
 
-cfg["SERVER_LOCAL"] = True
+#cfg["SERVER_LOCAL"] = True
 cfg["SERVER_DEBUG"] = False
 cfg["SERVER_HOST"]  = '0.0.0.0'
 cfg["SERVER_PORT"]  = 8887
@@ -24,7 +24,7 @@ cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/dqmsquare_server.log"
 
-cfg["PARSER_DEBUG"] =  True
+cfg["PARSER_DEBUG"]  = False
 cfg["PARSER_RANDOM"] = False
 cfg["PARSER_PARSE_OLDRUNS"] = True
 cfg["PARSER_OLDRUNS_UPDATE_TIME"] = 1. # h float
