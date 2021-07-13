@@ -13,9 +13,9 @@ import logging
 log = logging.getLogger(__name__)
 
 if __name__ == '__main__':
-  NAME = "dqmsquare_robber.py:"
+  NAME = "dqmsquare_robber_oldruns.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
-  dqmsquare_cfg.set_log_handler(log, cfg["ROBBER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["ROBBER_DEBUG"])
+  dqmsquare_cfg.set_log_handler(log, cfg["ROBBER_OLDRUNS_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["ROBBER_DEBUG"])
 
   log.info("begin ...")
   error_logs = dqmsquare_cfg.ErrorLogs()
@@ -61,8 +61,8 @@ if __name__ == '__main__':
 
       ### open new tabs
       log.info("restart_browser(): open tabs ...")
-      for i in range(N_targets):
-        driver.execute_script("window.open('about:blank');")
+      driver.execute_script("window.open('about:blank');")
+
 
     ### define scroll hack
     def scroll_shim(driver, object):
@@ -116,45 +116,103 @@ if __name__ == '__main__':
       log.debug("dqm_2_grab(): return data ... ")
       return driver.page_source.encode('utf-8')
 
-    ### start site sessions
-    def reload_pages():
-      list_good_sites = [ False for i in xrange(N_targets) ]
-      for i in range(N_targets):
-        driver.switch_to_window( driver.window_handles[i] )
-        try:
-          driver.get( sites[i] );
-          list_good_sites[i] = True
-        except Exception as error_log:
-          if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "reload_pages(): can't reach %s skip" % sites[i], error_log ) :
-            log.warning( "reload_pages(): can't reach %s skip ..." % sites[i] )
-            log.warning( error_log )
-          list_good_sites[i] = False
-
+    ### get old runs time-to-time
+    def get_old_runs(driver, opath, link, parser_info={}):
+      if not bool(cfg["ROBBER_GRAB_OLDRUNS"]) : return
+      driver.switch_to_window( driver.window_handles[-1] )
+      log.debug( "get_old_runs(): load link %s ..." % link )
+      driver.get( link )
       time.sleep( int(cfg["SLEEP_TIME"]) )
-      return list_good_sites
+
+      runs_done = []
+      while True:
+        runs_checkboxes = driver.find_elements_by_xpath( '//input[@type="checkbox"]' )
+
+        if not runs_checkboxes : 
+          log.warning( "get_old_runs(): no show-runs checkbox at %s, skip" % link )
+          break
+
+        try:
+          scroll_shim( driver, runs_checkboxes[0] )
+          ActionChains(driver).move_to_element(runs_checkboxes[0]).click().perform()
+        except Exception as error_log:
+          if error_logs.Check( "get_old_runs(): can't click on checkbox", error_log ) :
+            log.warning( "get_old_runs(): can't click on checkbox at %s, skip" % sites[i] )
+            log.warning( error_log )
+          break
+
+        all_runs_links = driver.find_elements_by_xpath( '//a[@class="label-run label label-info ng-binding ng-scope"]' )
+        has_new_runs = False
+
+        run_link_sorted = []
+        for run_link in all_runs_links :
+          if run_link.text in runs_done : continue
+          if not run_link.text : continue
+          if not run_link.text.isdigit() : continue
+          run_link_sorted += [ run_link ]
+        run_link_sorted = sorted( run_link_sorted, key=lambda x : -int(x.text) )
+
+        # skip first oldrun which is ongoing
+        if len(run_link_sorted) : run_link_sorted = run_link_sorted[1:]
+
+        for run_link in run_link_sorted :
+          has_new_runs = True
+          output_path = dqmsquare_cfg.get_TMP_robber_page_name( opath, run_link.text )
+
+          ### check if parser output in a bad state, than force reload
+          n_ongoing_runs = 0
+          try:
+            for key, item_dic in parser_info.items():
+              if run_link.text not in key : continue # same run number in the names of tmp robber and parser names
+              if item_dic.has_key("States G") :
+                n_ongoing_runs = int( item_dic["States G"] )
+          except Exception as error_log:
+            if bool(cfg["ROBBER_DEBUG"]) :
+              log.warning( "get_old_runs(): can't get correctly parser state, ignore parser info" )
+              log.warning( error_log )
+
+          ### check if output already exist
+          if not n_ongoing_runs :
+            if os.path.isfile( output_path ) :
+              timestamp = os.path.getmtime( output_path )
+              now = time.time()
+              if abs(timestamp - now) / 60 / 60 < float(cfg["ROBBER_OLDRUNS_UPDATE_TIME"]) :
+                log.debug("get_old_runs(): skip oldrun link: " + run_link.text)
+                continue
+          else : 
+            log.debug( "force reload oldrun link due to the parser state: " + run_link.text)
+
+          ### click and load content
+          log.debug( "process oldrun link: " + run_link.text)
+          try:
+            scroll_shim( driver, run_link )
+            ActionChains(driver).move_to_element(run_link).click().perform()
+            time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
+            content = dqm_2_grab(driver, output_path, delete_old_canvases=False )
+            log.debug( "get_old_runs(): get content from old run " + sites[i] + "\"" + content[:100] + "...\"" )
+            save_site( content, output_path )
+          except Exception as error_log:
+            if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "get_old_runs(): can't reach %s skip" % sites[i], error_log ) :
+              log.warning( "get_old_runs(): can't reach %s skip ..." % sites[i] )
+              log.warning( error_log )
+
+          runs_done += [ run_link.text ]
+
+        if has_new_runs : continue
+        break
 
     ### loop
     reload_driver = False
     restart_browser()
-    n_iters = int(cfg["ROBBER_RELOAD_NITERS"]) + 1
     log.info("loop ...")
     while True:
       try:
-        ### reload all pages time-to-time
-        n_iters += 1
-        if n_iters > int(cfg["ROBBER_RELOAD_NITERS"]) or not sum(list_good_sites): 
-          n_iters = 0
-          list_good_sites = reload_pages()
-
-        ### get content from active sites
+        ### get content from old sites
         for i in range(N_targets):
-          if not list_good_sites[i] : continue
-
-          driver.switch_to_window( driver.window_handles[i] )
-          content = dqm_2_grab(driver, opaths[i], delete_old_canvases=True)
-
-          log.debug( "get content from " + sites[i] + " - \"" + content[:100] + "...\"" )
-          save_site( content, opaths[i] )
+          log.debug( "get old run contents from " + sites[i] )
+          parser_page_info = dqmsquare_cfg.get_parser_info( parser_paths[i] )
+          log.debug( "parser metacontent %s " % str(parser_page_info) )
+          get_old_runs(driver, opaths[i], sites[i], parser_page_info)
 
       except KeyboardInterrupt:
         break
@@ -174,11 +232,10 @@ if __name__ == '__main__':
           time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
           continue
         log.info("going to reload driver ... ok")
-        n_iters = int(cfg["ROBBER_RELOAD_NITERS"]) + 1
         reload_driver = False
 
       log.debug( "z-Z-z" )
-      time.sleep( int(cfg["SLEEP_TIME"]) )
+      time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
 
     driver.close()
     driver.quit()

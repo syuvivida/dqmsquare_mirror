@@ -41,15 +41,18 @@ fi
 if [ $1 == "build" ] ; then
   echo "dqmsquare_deploy.sh: BUILD ..."
   cd $sfolder
+  cp dqmsquare_robber_oldruns.py $build_folder/.
   cp dqmsquare_robber.py $build_folder/.
   cp dqmsquare_parser.py $build_folder/.
   cp dqmsquare_cfg.py    $build_folder/.
   cd $build_folder
 
   python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber.py
+  python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber_oldruns.py
   python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_parser.py
 
   cp dist/dqmsquare_robber $sfolder/.
+  cp dist/dqmsquare_robber_oldruns $sfolder/.
   cp dist/dqmsquare_parser $sfolder/.
 fi
 
@@ -69,6 +72,7 @@ cp -r $sfolder/services $sfolder/RPMBUILD/SOURCES/.
 cp $sfolder/*.py $sfolder/RPMBUILD/SOURCES/.
 cp $sfolder/dqmsquare_parser $sfolder/RPMBUILD/SOURCES/.
 cp $sfolder/dqmsquare_robber $sfolder/RPMBUILD/SOURCES/.
+cp $sfolder/dqmsquare_robber_oldruns $sfolder/RPMBUILD/SOURCES/.
 
 rpmbuild --define "_topdir "$sfolder"/RPMBUILD" -bb dqmsquare_mirror.spec
 

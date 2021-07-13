@@ -9,6 +9,10 @@ if [ $service = "robber" ] ; then
   ./dqmsquare_robber         
 fi
 
+if [ $service = "robber_oldruns" ] ; then
+  ./dqmsquare_robber_oldruns
+fi
+
 if [ $service = "parser" ] ; then
   ./dqmsquare_parser         
 fi

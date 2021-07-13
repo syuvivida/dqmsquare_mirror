@@ -1,5 +1,5 @@
 [Unit]
-Description="DQM^2 grabber/parser/server service; usage: systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service"
+Description="DQM^2 grabber/parser/server service; usage: systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@robber_oldruns.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service"
 
 [Service]
 Type=simple

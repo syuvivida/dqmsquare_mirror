@@ -13,7 +13,7 @@ cfg["SLEEP_TIME_LONG"] = 30 #sec, int
 cfg["TMP_FILES_LIFETIME"] = 100 # h, int
 cfg["TMP_CLEAN_FILES"] = False
 cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
-cfg["LOGGER_MAX_N_LOG_FILES"] = 100 # int
+cfg["LOGGER_MAX_N_LOG_FILES"] = 30 # int
 
 #cfg["SERVER_LOCAL"] = True
 cfg["SERVER_DEBUG"] = False
@@ -43,7 +43,8 @@ cfg["ROBBER_GRAB_OLDRUNS"] = True
 cfg["ROBBER_TARGET_SITES"] = "http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 cfg["ROBBER_OUTPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
 cfg["ROBBER_RELOAD_NITERS"] = 100
-cfg["ROBBER_LOG_PATH"]      = "log/dqmsquare_robber.log"
+cfg["ROBBER_LOG_PATH"]         = "log/dqmsquare_robber.log"
+cfg["ROBBER_OLDRUNS_LOG_PATH"] = "log/dqmsquare_robber_oldruns.log"
 cfg["ROBBER_OLDRUNS_UPDATE_TIME"] = 2. # h, float
 
 ### load values === >

@@ -1,5 +1,5 @@
 Name:       dqmsquare_mirror
-Version:    1.0.7
+Version:    1.0.8
 Release:    1
 Summary:    DQM^2 grabber/parser/server
 License:    GPL
@@ -21,6 +21,7 @@ cp -r ../SOURCES/geckodriver $RPM_BUILD_ROOT/opt/dqmsquare_mirror/geckodriver
 cp ../SOURCES/*.py $RPM_BUILD_ROOT/opt/dqmsquare_mirror/.
 cp ../SOURCES/dqmsquare_parser $RPM_BUILD_ROOT/opt/dqmsquare_mirror/.
 cp ../SOURCES/dqmsquare_robber $RPM_BUILD_ROOT/opt/dqmsquare_mirror/.
+cp ../SOURCES/dqmsquare_robber_oldruns $RPM_BUILD_ROOT/opt/dqmsquare_mirror/.
 
 mkdir -p $RPM_BUILD_ROOT/usr/bin
 mkdir -p $RPM_BUILD_ROOT/etc/systemd/system
@@ -38,7 +39,7 @@ cp ../SOURCES/services/dqmsquare_mirror@.service   $RPM_BUILD_ROOT/etc/systemd/s
 sed -i "s%__PDQM__%"$RPM_INSTALL_PREFIX"%g" /usr/bin/dqmsquare_mirror_wrapper.sh
 echo "Install to \""$RPM_INSTALL_PREFIX"\""
 echo "Done!"
-echo "Start it with: systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service"
+echo "Start it with: systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@robber_oldruns.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service"
 
 
 
