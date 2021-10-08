@@ -8,6 +8,9 @@ cfg = {}
 
 cfg_SECTION = 'OPTIONS'
 
+cfg["VERSION"] = "1.0.10"
+print "\n\n\n================================== dqmsquare_cfg() v", cfg["VERSION"]
+
 cfg["SLEEP_TIME"] = 5 #sec, int
 cfg["SLEEP_TIME_LONG"] = 30 #sec, int
 cfg["TMP_FILES_LIFETIME"] = 100 # h, int
