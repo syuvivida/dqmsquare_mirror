@@ -41,6 +41,13 @@ if __name__ == '__main__':
     log.info("setup Selenium WebDriver ...")
     options = Options()
     options.headless = True
+    options.add_argument("start-maximized")
+    options.add_argument("disable-infobars")
+    options.add_argument("--disable-extensions")
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-application-cache')
+    options.add_argument('--disable-gpu')
+    options.add_argument("--disable-dev-shm-usage")
     driver = None
 
     ### setup browser driver
@@ -57,7 +64,7 @@ if __name__ == '__main__':
             log.warning( error_log )
 
       log.info("restart_browser(): setup Selenium WebDriver ...")
-      driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path='./log/geckodriver.log')
+      driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path='./log/geckodriver_oldruns.log')
 
       ### open new tabs
       log.info("restart_browser(): open tabs ...")
@@ -81,7 +88,7 @@ if __name__ == '__main__':
               ActionChains(driver).move_to_element(span).click().perform()
           except bool(cfg["ROBBER_DEBUG"]) or Exception as error_log:
             if error_logs.Check( "click on log button", error_log ) :
-              log.warning( "dqm_2_grab(): cant click on log button" )
+              log.warning( "dqm_2_grab(): can't click on log button" )
               log.warning( error_log )
 
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
@@ -204,6 +211,7 @@ if __name__ == '__main__':
     ### loop
     reload_driver = False
     restart_browser()
+    N_loops = 0
     log.info("loop ...")
     while True:
       try:
@@ -221,6 +229,12 @@ if __name__ == '__main__':
           log.warning("grabber crashed ...")
           log.warning(error_log)
           reload_driver = True
+
+      N_loops += 1
+      if int(cfg["FIREFOX_RELOAD_NITERS"]) and N_loops > int(cfg["FIREFOX_RELOAD_NITERS"]) : 
+        reload_driver = True
+        N_loops       = 0
+        log.info("N_loops > int(cfg[\"FIREFOX_RELOAD_NITERS\"])")
 
       while reload_driver:
         log.info("going to reload driver ... ")

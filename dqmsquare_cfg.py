@@ -14,6 +14,7 @@ cfg["TMP_FILES_LIFETIME"] = 100 # h, int
 cfg["TMP_CLEAN_FILES"] = False
 cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
 cfg["LOGGER_MAX_N_LOG_FILES"] = 30 # int
+cfg["FIREFOX_RELOAD_NITERS"] = 10000 # 10000 # int ~ twice per week - 24 * 7 * 60 * 60 / 30
 
 #cfg["SERVER_LOCAL"] = True
 cfg["SERVER_DEBUG"] = False
