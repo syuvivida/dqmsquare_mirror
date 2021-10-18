@@ -5,6 +5,7 @@ python scripta/script_B.py
 `tmp` - is a an output folder
 
 **Build docker image locally:**  
+sudo systemctl start docker
 docker build --build-arg CMSK8S=http://cmsweb-testbed.cern.ch -t pmandrik/scripta:v1 scripta
 docker build --build-arg CMSK8S=http://cmsweb-testbed.cern.ch -t pmandrik/scriptb:v1 scriptb
 
@@ -12,6 +13,12 @@ docker build --build-arg CMSK8S=http://cmsweb-testbed.cern.ch -t pmandrik/script
 docker run --rm -h `hostname -f` -v ~/tmp:/tmp -i -t pmandrik/scripta:v1
 docker run --rm -h `hostname -f` -v ~/tmp:/tmp -i -t pmandrik/scriptb:v1
 `-v ~/tmp:/tmp` - turn container /tmp into local ~/tmp
+
+You can check not running docker image like:
+docker run --entrypoint '/bin/sh' pmandrik/scripta:v1 -c 'ls; echo `pwd`;'
+
+Shell access to the running container:
+docker exec -it $CONTAINER_ID /bin/bash
 
 **Push Images:**  
 docker login
@@ -24,7 +31,6 @@ login lxplus8
 Get testbed config:
 export KUBECONFIG=/afs/cern.ch/user/m/mimran/public/cmsweb-k8s/config.cmsweb-test4
 export OS_TOKEN=$(openstack token issue -c id -f value)
-export KUBECONFIG=$PWD/config.cmsweb-testbed4
 Check available clusters with `kubectl config get-clusters`
 wget https://raw.githubusercontent.com/dmwm/CMSKubernetes/master/kubernetes/cmsweb/scripts/deploy-srv.sh
 Modify it to work with local copy of scripta.yaml or push scripta.yaml to cmsweb repo :D
@@ -39,10 +45,39 @@ To delete : kubectl delete pod scripta-6b4c867475-4xlzd - NOT WORKING
 Check deployments: kubectl get deployments -n default
 To delete : kubectl delete -n default deployment scripta
 
+**K8 testbed deployment with eos **WIP**
+Following https://cms-http-group.docs.cern.ch/k8s_cluster/eos/
+Use scripta_eos.yaml
+Check output /eos/project/c/cmsweb/www/dqm/k8test
+
 **K8 testbed deployment with cephfs**
+docker build --build-arg CMSK8S=http://cmsweb-testbed.cern.ch -t pmandrik/scripta_cephfs:v1 scripta_cephfs
+docker run --rm -h `hostname -f` -v ~/tmp:/tmp -i -t pmandrik/scripta_cephfs:v1
+
 Create cephfs share volume: https://clouddocs.web.cern.ch/file_shares/quickstart.html
-kubectl get storageclass
+Get local enviroment of DQM project following: https://clouddocs.web.cern.ch/using_openstack/environment_options.html
+Set enviroment:
+. CMS_DQM_DC_openrc.sh
+Create a share:
 openstack share create --name myshare01 --share-type "Geneva CephFS Testing" CephFS 1
+Check available share: manila list
+Add manila access-allow myshare01  cephx cmsweb-auth
+Get osShareID : manila list myshare01
+Get osShareAccessID : manila access-list myshare01
+osShareID & osShareAccessID Used in the k8 .yaml config
+Get mount path : manila share-export-location-list myshare01 
+Mount at cluster:
+ceph-fuse /cephfs/testbed/confdb-logs --id=cmsweb-auth --client-mountpoint=/volumes/_nogroup/9392e470-ef2c-4165-8caa-6063954e4e72
+
+
+
+
+
+
+
+
+
+
 
 
 
