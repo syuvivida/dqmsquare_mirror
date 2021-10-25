@@ -1,4 +1,4 @@
-FROM cmssw/cmsweb:20210628
+FROM registry.cern.ch/cmsweb/cmsweb:20210914-stable
 MAINTAINER P.~Mandrik petr.mandrik@cern.ch
 
 # add environment
@@ -8,5 +8,8 @@ ARG CMSK8S
 ENV CMSK8S=$CMSK8S
 COPY script_A.py script_A.py
 COPY run.sh run.sh
+
+RUN mkdir -p /cephfs/testbed/confdb-logs
+
 CMD ["run.sh"]
 

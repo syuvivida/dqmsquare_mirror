@@ -1,3 +1,13 @@
+** Create personal VM:**
+https://clouddocs.web.cern.ch/tutorial/openstack_command_line.html
+openstack server create --key-name lxplus --flavor m2.small --image "CC7 - x86_64 [2021-10-01]" vmpmandrik
+openstack server show vmpmandrik
+openstack volume create --size 20 vopmandrik
+openstack volume list
+openstack server add volume vmpmandrik vopmandrik
+openstack console url show vmpmandrik
+Login via : ssh root@vmpmandrik.cern.ch
+
 **Run locally (assuming different consoles):**  
 mkdir tmp
 python scripta/script_A.py
@@ -51,9 +61,6 @@ Use scripta_eos.yaml
 Check output /eos/project/c/cmsweb/www/dqm/k8test
 
 **K8 testbed deployment with cephfs**
-docker build --build-arg CMSK8S=http://cmsweb-testbed.cern.ch -t pmandrik/scripta_cephfs:v1 scripta_cephfs
-docker run --rm -h `hostname -f` -v ~/tmp:/tmp -i -t pmandrik/scripta_cephfs:v1
-
 Create cephfs share volume: https://clouddocs.web.cern.ch/file_shares/quickstart.html
 Get local enviroment of DQM project following: https://clouddocs.web.cern.ch/using_openstack/environment_options.html
 Set enviroment:
@@ -66,6 +73,15 @@ Get osShareID : manila list myshare01
 Get osShareAccessID : manila access-list myshare01
 osShareID & osShareAccessID Used in the k8 .yaml config
 Get mount path : manila share-export-location-list myshare01 
+
+Create docker image as usual:
+docker build --build-arg CMSK8S=http://cmsweb-testbed.cern.ch -t pmandrik/scripta_cephfs:v1 scripta_cephfs
+docker run --rm -h `hostname -f` -v ~/tmp:/tmp -i -t pmandrik/scripta_cephfs:v1
+docker push pmandrik/scripta_cephfs:v1
+
+Deploy to k8:
+deploy-srv.sh scripta_cephfs v1 test4  
+
 Mount at cluster:
 ceph-fuse /cephfs/testbed/confdb-logs --id=cmsweb-auth --client-mountpoint=/volumes/_nogroup/9392e470-ef2c-4165-8caa-6063954e4e72
 
