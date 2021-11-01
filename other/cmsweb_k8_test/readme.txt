@@ -1,12 +1,13 @@
 ** Create personal VM:**
 https://clouddocs.web.cern.ch/tutorial/openstack_command_line.html
-openstack server create --key-name lxplus --flavor m2.small --image "CC7 - x86_64 [2021-10-01]" vmpmandrik
-openstack server show vmpmandrik
-openstack volume create --size 20 vopmandrik
+openstack server create --key-name lxplus --flavor m2.small --image "CC7 - x86_64 [2021-10-01]" vmname
+openstack server show voname
+openstack volume create --size 20 voname
 openstack volume list
-openstack server add volume vmpmandrik vopmandrik
-openstack console url show vmpmandrik
-Login via : ssh root@vmpmandrik.cern.ch
+openstack server add volume vmname voname
+openstack console url show vmname
+Login via : 
+ssh root@vmname.cern.ch
 
 **Run locally (assuming different consoles):**  
 mkdir tmp
@@ -48,12 +49,20 @@ test4 is a DQM dedicated testbed ( https://cms-http-group.docs.cern.ch/k8s_clust
 
 First test - this way docker container will create output files in the container /tmp:
 deploy-srv.sh scripta v1 test4  
-Check the status: kubectl get pods -n default
-To login to the pod: kubectl exec -it scripta-... sh -n default
-To see logs of a pod: kubectl logs scripta-... -n default
-To delete : kubectl delete pod scripta-6b4c867475-4xlzd - NOT WORKING
-Check deployments: kubectl get deployments -n default
-To delete : kubectl delete -n default deployment scripta
+Check the status: 
+kubectl get pods -n default
+To login to the pod: 
+kubectl exec -it scripta-... sh -n default
+To see logs of a pod: 
+kubectl logs scripta-... -n default
+To delete : 
+kubectl delete pod ${POD_NAME} - NOT WORKING
+Check deployments: 
+kubectl get deployments -n default
+To delete : 
+kubectl delete -n default deployment scripta
+To get Pod logs: 
+kubectl describe pods ${POD_NAME}
 
 **K8 testbed deployment with eos **WIP**
 Following https://cms-http-group.docs.cern.ch/k8s_cluster/eos/
@@ -63,16 +72,22 @@ Check output /eos/project/c/cmsweb/www/dqm/k8test
 **K8 testbed deployment with cephfs**
 Create cephfs share volume: https://clouddocs.web.cern.ch/file_shares/quickstart.html
 Get local enviroment of DQM project following: https://clouddocs.web.cern.ch/using_openstack/environment_options.html
-Set enviroment:
-. CMS_DQM_DC_openrc.sh
+
+For DQM DC cluster:
+. CMS_DQM_DC_openrc.sh - for DQM DC project
 Create a share:
 openstack share create --name myshare01 --share-type "Geneva CephFS Testing" CephFS 1
 Check available share: manila list
 Add manila access-allow myshare01  cephx cmsweb-auth
-Get osShareID : manila list myshare01
+Get osShareID : manila list
 Get osShareAccessID : manila access-list myshare01
 osShareID & osShareAccessID Used in the k8 .yaml config
 Get mount path : manila share-export-location-list myshare01 
+
+For CMSWEB K8 testbed clusters:
+. CMS_WebtoolMig_openrc.sh
+manila list
+manila access-list pvc-c856be26-9de9-11e9-93c2-02163e01bcd6
 
 Create docker image as usual:
 docker build --build-arg CMSK8S=http://cmsweb-testbed.cern.ch -t pmandrik/scripta_cephfs:v1 scripta_cephfs
@@ -80,12 +95,38 @@ docker run --rm -h `hostname -f` -v ~/tmp:/tmp -i -t pmandrik/scripta_cephfs:v1
 docker push pmandrik/scripta_cephfs:v1
 
 Deploy to k8:
-deploy-srv.sh scripta_cephfs v1 test4  
+kubectl apply -f cephfs_claim.yaml
+kubectl apply -f scripta_cephfs.yaml
 
-Mount at cluster:
-ceph-fuse /cephfs/testbed/confdb-logs --id=cmsweb-auth --client-mountpoint=/volumes/_nogroup/9392e470-ef2c-4165-8caa-6063954e4e72
+Now not only the pods will be created but cephfs volumes and volums claims:
+kubectl get pv -n default
+kubectl get pvc -n default
+To delete:
+kubectl delete storageclass  dqmpv    --grace-period=0 --force
+kubectl delete pv dqmpv    --grace-period=0 --force
+kubectl delete pvc dqmpv  --grace-period=0 --force
+To check:
+kubectl describe storageclass  dqmpv
+kubectl describe pvc  dqmpvc
 
+Mount at cluster from any VM (check Install ceph-fuse (for CC7) if ceph-fuse is not installed):
+ceph-fuse /cephfs/testbed/confdb-logs --id=cmsweb-auth --client-mountpoint=/volumes/_nogroup/9bac97f9-3e4e-4627-9e1b-d2666d14b8fc
 
+** Install ceph-fuse (for CC7): **
+Follow https://manjusri.ucsc.edu/2017/09/25/ceph-fuse/
+
+Create config /etc/ceph/ceph.conf with following content (for Geneva testing share):
+[global]
+admin socket = /var/run/ceph/\$cluster-\$name-\$pid.asok
+client reconnect stale = true
+debug client = 0/2
+fuse big writes = true
+mon host = cephmond.cern.ch:6790
+
+Create key config following 
+https://clouddocs.web.cern.ch/file_shares/manual_cephfs.html
+and 
+https://github.com/dmwm/CMSKubernetes/blob/master/kubernetes/cmsweb/docs/storage.md
 
 
 

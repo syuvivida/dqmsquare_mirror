@@ -1,0 +1,28 @@
+apiVersion: storage.k8s.io/v1beta1
+kind: StorageClass
+metadata:
+  name: dqmpv
+provisioner: manila-provisioner
+parameters:
+  type: "Geneva CephFS Testing"
+  zones: nova
+  osSecretName: os-trustee
+  osSecretNamespace: kube-system
+  protocol: CEPHFS
+  backend: csi-cephfs
+  csi-driver: cephfs.csi.ceph.com
+  osShareID: b8c03b1a-6606-4920-bacf-2a2990ceb091 # cec913f6-0016-4f59-9105-14d3abd4c607
+  osShareAccessID: a08a9d8c-97e6-4b6a-b911-b439474c8f9c # 6169ece6-78f6-4be2-9450-4f71788bdfc0
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dqmpvc
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Mi
+  storageClassName: dqmpvc
+

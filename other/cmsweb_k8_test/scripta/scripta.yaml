@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: scripta
-        image: pmandrik/scripta #imagetag
+        image: pmandrik/scripta:v1 #imagetag
         resources:
           requests:
             memory: "100Mi"

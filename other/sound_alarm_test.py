@@ -2,7 +2,7 @@
 
 SOUNDSERVER = "daq-expert.cms"
 PORT = 50555
-MSGBODY = ('<CommandSequence><alarm sender="DQM" sound="DQM_1.wav" talk="%s">''%s Check plots in the DQM Error folder.</alarm></CommandSequence>')
+MSGBODY = ('<CommandSequence><alarm sender="DQM" sound="DQM_1.wav" talk="DQM test alarm">DQM test alarm.</alarm></CommandSequence>')
 
 from socket import socket, AF_INET, SOCK_STREAM, gethostname
 s = socket(AF_INET, SOCK_STREAM)
