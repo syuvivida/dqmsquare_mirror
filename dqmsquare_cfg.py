@@ -1,15 +1,15 @@
 # P.S.~Mandrik, IHEP, https://github.com/pmandrik
 
 import os
-import ConfigParser
+import configparser as ConfigParser
 
 ### default values === >
 cfg = {}
 
 cfg_SECTION = 'OPTIONS'
 
-cfg["VERSION"] = "1.0.10"
-print "\n\n\n================================== dqmsquare_cfg() v", cfg["VERSION"]
+cfg["VERSION"] = "1.1.0"
+print( "\n\n\n================================== dqmsquare_cfg() v", cfg["VERSION"])
 
 cfg["SLEEP_TIME"] = 5 #sec, int
 cfg["SLEEP_TIME_LONG"] = 30 #sec, int
@@ -26,7 +26,7 @@ cfg["SERVER_PORT"]  = 8887
 cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = "tmp/content_parser_production"
 cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
-cfg["SERVER_LOG_PATH"]                = "log/dqmsquare_server.log"
+cfg["SERVER_LOG_PATH"]                = "log/server.log"
 
 cfg["PARSER_DEBUG"]  = False
 cfg["PARSER_RANDOM"] = False
@@ -36,7 +36,7 @@ cfg["PARSER_LOG_UPDATE_TIME"] = 10. # minutes float
 cfg["PARSER_MAX_OLDRUNS"]  = 17 # int
 cfg["PARSER_INPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
 cfg["PARSER_OUTPUT_PATHS"] = "tmp/content_parser_production,tmp/content_parser_playback"
-cfg["PARSER_LOG_PATH"]     = "log/dqmsquare_parser.log"
+cfg["PARSER_LOG_PATH"]     = "log/parser.log"
 
 cfg["ROBBER_BACKEND"] = "selenium"
 cfg["ROBBER_GECKODRIVER_PATH"] = "geckodriver/geckodriver"
@@ -47,8 +47,8 @@ cfg["ROBBER_GRAB_OLDRUNS"] = True
 cfg["ROBBER_TARGET_SITES"] = "http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 cfg["ROBBER_OUTPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
 cfg["ROBBER_RELOAD_NITERS"] = 100
-cfg["ROBBER_LOG_PATH"]         = "log/dqmsquare_robber.log"
-cfg["ROBBER_OLDRUNS_LOG_PATH"] = "log/dqmsquare_robber_oldruns.log"
+cfg["ROBBER_LOG_PATH"]         = "log/robber1.log"
+cfg["ROBBER_OLDRUNS_LOG_PATH"] = "log/robber2.log"
 cfg["ROBBER_OLDRUNS_UPDATE_TIME"] = 2. # h, float
 
 ### load values === >
@@ -59,14 +59,14 @@ def load_cfg( path, section=cfg_SECTION ):
   try:
     config.read( path )
   except:
-    print "dqmsquare_cfg.load_cfg(): can't load", path, "cfg; return default cfg"
+    print( "dqmsquare_cfg.load_cfg(): can't load", path, "cfg; return default cfg")
     return cfg;
 
   options = []
   try:
     options = config.items( section )
   except:
-    print "dqmsquare_cfg.load_cfg(): can't find", section, "section in", path, "cfg; return default cfg"
+    print( "dqmsquare_cfg.load_cfg(): can't find", section, "section in", path, "cfg; return default cfg")
     return cfg;
 
   answer = {}
@@ -93,7 +93,7 @@ if __name__ == '__main__' :
   items = list( cfg_.items() )
   items = sorted(items,key=lambda x : x[0])
   for item in items:
-    print item
+    print( item )
 
 ### get logger ===>
 import logging

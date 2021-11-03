@@ -315,7 +315,7 @@ if __name__ == '__main__':
     old_runs_pages_dic = defaultdict( list )
     if bool(cfg["PARSER_PARSE_OLDRUNS"]) : 
       try:
-        for i in xrange(N_targets):
+        for i in range(N_targets):
           dir_name = os.path.dirname( ipaths[i] )
           fname    = os.path.basename(ipaths[i] )
 
@@ -348,13 +348,13 @@ if __name__ == '__main__':
             old_runs_pages_dic[ i ] = sorted( old_runs_pages_dic[ i ], key=lambda x : -int(x[0]) )
 
       except Exception as error_log:
-        print error_log
+        print( error_log )
         log.warning("parser crashed for old runs ...")
         log.warning(error_log)
 
     ### targets ...
     try:
-      for i in xrange(N_targets):
+      for i in range(N_targets):
         dqm_data = parse_dqmsquare_page( ipaths[i], opaths[i] )
         if not dqm_data : 
           create_dummy_page( opaths[i] )
