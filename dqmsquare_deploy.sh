@@ -1,6 +1,8 @@
 #!/bin/bash
 # P.S.~Mandrik, IHEP, https://github.com/pmandrik
 
+set -x
+
 sfolder=`pwd`
 tmp_folder=`pwd`/tmp
 log_folder=`pwd`/log
@@ -47,9 +49,9 @@ if [ $1 == "build" ] ; then
   cp dqmsquare_cfg.py    $build_folder/.
   cd $build_folder
 
-  python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber.py
-  python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber_oldruns.py
-  python -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_parser.py
+  python3 -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber.py
+  python3 -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_robber_oldruns.py
+  python3 -m PyInstaller --onefile --hidden-import=dqmsquare_cfg dqmsquare_parser.py
 
   cp dist/dqmsquare_robber $sfolder/.
   cp dist/dqmsquare_robber_oldruns $sfolder/.
@@ -58,25 +60,27 @@ fi
 
 # create def cfg
 cd $sfolder
-python dqmsquare_cfg.py
+python3 dqmsquare_cfg.py
 
 # pack into rpm
-echo "dqmsquare_deploy.sh: RPM ..." "s/__PDQM__/"$RPM_INSTALL_PREFIX"/g"
-mkdir -p $sfolder/RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
+if [ $1 == "rpm" ] ; then
+  echo "dqmsquare_deploy.sh: RPM ..." "s/__PDQM__/"$RPM_INSTALL_PREFIX"/g"
+  mkdir -p $sfolder/RPMBUILD/{RPMS/x86_64,SPECS,BUILD,SOURCES,SRPMS}
 
-cp -r $sfolder/static $sfolder/RPMBUILD/SOURCES/.
-cp -r $sfolder/bottle $sfolder/RPMBUILD/SOURCES/.
-cp -r $sfolder/geckodriver $sfolder/RPMBUILD/SOURCES/.
-cp -r $sfolder/services $sfolder/RPMBUILD/SOURCES/.
+  cp -r $sfolder/static $sfolder/RPMBUILD/SOURCES/.
+  cp -r $sfolder/bottle $sfolder/RPMBUILD/SOURCES/.
+  cp -r $sfolder/geckodriver $sfolder/RPMBUILD/SOURCES/.
+  cp -r $sfolder/services $sfolder/RPMBUILD/SOURCES/.
 
-cp $sfolder/*.py $sfolder/RPMBUILD/SOURCES/.
-cp $sfolder/dqmsquare_parser $sfolder/RPMBUILD/SOURCES/.
-cp $sfolder/dqmsquare_robber $sfolder/RPMBUILD/SOURCES/.
-cp $sfolder/dqmsquare_robber_oldruns $sfolder/RPMBUILD/SOURCES/.
+  cp $sfolder/*.py $sfolder/RPMBUILD/SOURCES/.
+  cp $sfolder/dqmsquare_parser $sfolder/RPMBUILD/SOURCES/.
+  cp $sfolder/dqmsquare_robber $sfolder/RPMBUILD/SOURCES/.
+  cp $sfolder/dqmsquare_robber_oldruns $sfolder/RPMBUILD/SOURCES/.
 
-rpmbuild --define "_topdir "$sfolder"/RPMBUILD" -bb dqmsquare_mirror.spec
+  rpmbuild --define "_topdir "$sfolder"/RPMBUILD" -bb dqmsquare_mirror.spec
 
-cp $sfolder/RPMBUILD/RPMS/x86_64/* .
+  cp $sfolder/RPMBUILD/RPMS/x86_64/* .
+fi
 
 
 
