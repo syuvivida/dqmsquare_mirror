@@ -25,18 +25,7 @@ Folders:
 * tmp - folder to put output from dqmsquare_robber and dqmsquare_parser
 The RPM post-install script will create this folders. They are also hardcoded in the dqmsquare_server.py.
 
-##### Requirements
-Tested with:  
-* Python: 2.7.14  
-* Platform: Linux-4.12.14-lp150.12.82-default-x86_64-with-glibc2.2.5  
-* Bottle: 0.12.19  
-* Geckodriver: 0.29.1  
-* PyInstaller: 3.4  
-
-For the creation of RPM:
-* rpm-build  
-
-##### Deployment
+##### Deployment with RPM, Python 2.7
 Download repo to your local linux machine. 
 Check dqmsquare_deploy.sh to download extra dependencies and create executables.
 Several options:
@@ -47,8 +36,29 @@ Several options:
    sudo rpm -i dqmsquare_mirror-1.0.0-1.x86_64.rpm  
    sudo systemctl enable dqmsquare_mirror@robber.service dqmsquare_mirror@robber_oldruns.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service  
    sudo systemctl start dqmsquare_mirror@robber.service dqmsquare_mirror@robber_oldruns.service dqmsquare_mirror@parser.service dqmsquare_mirror@server.service  
-   You can also install this locally with --prefix=PATH option.
+   You can also install this locally with --prefix=PATH option.  
 
+Tested with:  
+* Python: 2.7.14  
+* Platform: Linux-4.12.14-lp150.12.82-default-x86_64-with-glibc2.2.5  
+* Bottle: 0.12.19  
+* Geckodriver: 0.29.1  
+* PyInstaller: 3.4  
+
+For the creation of RPM:
+* rpm-build  
+
+##### Deployment with Docker, K8, Python 3.6
+1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0 dqmsquare_mirror  
+2. docker login registry.cern.ch   
+3. docker push registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0  
+4. update k8 config yaml to use registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0
+5. At lxplus 8 for testbed cmsweb k8 cluster:
+```
+  export KUBECONFIG=/afs/cern.ch/user/m/mimran/public/cmsweb-k8s/config.cmsweb-test4
+  kubectl apply -f k8_claim_testbed.yaml
+  kubectl apply -f k8_config_testbed.yaml
+```
 ##### Usefull extras
 * Bottle built-in default server is not for a heavy server load, just for 3-5 shifters
 * Number of logs created by dqmsquare_robber/dqmsquare_robber_oldruns/dqmsquare_parser/dqmsquare_server is limited by TimedRotatingFileHandler
@@ -57,11 +67,8 @@ Several options:
  ./dqmsquare_deploy.sh build
 * at p5 for installation, for example  
   sudo rpm -e dqmsquare_mirror; sudo rpm -i /nfshome0/pmandrik/dqmsquare_mirror-1.0.0-1.x86_64.rpm
+* 
 
-##### TODO
-Some ideas for future development:
-* geckodriver log cleaner  
-* switch to python3  
-* help page  
+
 
 

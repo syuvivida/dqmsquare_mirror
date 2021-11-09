@@ -1,7 +1,7 @@
 apiVersion: storage.k8s.io/v1beta1
 kind: StorageClass
 metadata:
-  name: dqmsquare_mirror-sc-testbed
+  name: dqmsquare-mirror-sc-testbed
 provisioner: manila-provisioner
 parameters:
   type: "Geneva CephFS Testing"
@@ -17,12 +17,12 @@ parameters:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: dqmsquare_mirror-pvc-testbed
+  name: dqmsquare-mirror-pvc-testbed
 spec:
   accessModes:
   - ReadWriteMany
   resources:
     requests:
       storage: 100Mi
-  storageClassName: dqmsquare_mirror-sc-testbed
+  storageClassName: dqmsquare-mirror-sc-testbed
 

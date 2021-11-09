@@ -2,23 +2,23 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata: 
-  name: dqmsquare_mirror-server-testbed
+  name: dqmsquare-mirror-server-testbed
   namespace: default
   labels:
-    app: dqmsquare_mirror-server-testbed
+    app: dqmsquare-mirror-server-testbed
 spec:
   selector:
     matchLabels:
-      app: dqmsquare_mirror-server-testbed
+      app: dqmsquare-mirror-server-testbed
   replicas: 1
   template: # This is the pod template
     metadata:
       labels:
-        app: dqmsquare_mirror-server-testbed
+        app: dqmsquare-mirror-server-testbed
     spec:
       containers:
-      - name: dqmsquare_mirror
-        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0 #imagetag
+      - name: dqmsquare-mirror
+        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
         command: ["python3 dqmsquare_server.py"]
         args: []
         resources:
@@ -29,34 +29,34 @@ spec:
             memory: "1Gi"
             cpu: "400m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare_mirror
-            name: dqmsquare_mirror-pvc-testbed
+          - mountPath: /cephfs/testbed/dqmsquare-mirror
+            name: dqmsquare-mirror-pvc-testbed
       volumes:
-      - name: dqmsquare_mirror-pvc-testbed
+      - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare_mirror-sc-testbed
+          claimName: dqmsquare-mirror-sc-testbed
           readOnly: false
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata: 
-  name: dqmsquare_mirror-parser-testbed
+  name: dqmsquare-mirror-parser-testbed
   namespace: default
   labels:
-    app: dqmsquare_mirror-parser-testbed
+    app: dqmsquare-mirror-parser-testbed
 spec:
   selector:
     matchLabels:
-      app: dqmsquare_mirror-parser-testbed
+      app: dqmsquare-mirror-parser-testbed
   replicas: 1
   template: # This is the pod template
     metadata:
       labels:
-        app: dqmsquare_mirror-parser-testbed
+        app: dqmsquare-mirror-parser-testbed
     spec:
       containers:
-      - name: dqmsquare_mirror
-        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0 #imagetag
+      - name: dqmsquare-mirror
+        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
         command: ["python3 dqmsquare_parser.py"]
         args: []
         resources:
@@ -67,34 +67,34 @@ spec:
             memory: "1Gi"
             cpu: "400m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare_mirror
-            name: dqmsquare_mirror-pvc-testbed
+          - mountPath: /cephfs/testbed/dqmsquare-mirror
+            name: dqmsquare-mirror-pvc-testbed
       volumes:
-      - name: dqmsquare_mirror-pvc-testbed
+      - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare_mirror-sc-testbed
+          claimName: dqmsquare-mirror-sc-testbed
           readOnly: false
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata: 
-  name: dqmsquare_mirror-server-testbed
+  name: dqmsquare-mirror-server-testbed
   namespace: default
   labels:
-    app: dqmsquare_mirror-server-testbed
+    app: dqmsquare-mirror-server-testbed
 spec:
   selector:
     matchLabels:
-      app: dqmsquare_mirror-server-testbed
+      app: dqmsquare-mirror-server-testbed
   replicas: 1
   template: # This is the pod template
     metadata:
       labels:
-        app: dqmsquare_mirror-server-testbed
+        app: dqmsquare-mirror-server-testbed
     spec:
       containers:
-      - name: dqmsquare_mirror
-        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0 #imagetag
+      - name: dqmsquare-mirror
+        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
         command: ["python3 dqmsquare_robber.py"]
         args: []
         resources:
@@ -105,34 +105,34 @@ spec:
             memory: "4Gi"
             cpu: "800m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare_mirror
-            name: dqmsquare_mirror-pvc-testbed
+          - mountPath: /cephfs/testbed/dqmsquare-mirror
+            name: dqmsquare-mirror-pvc-testbed
       volumes:
-      - name: dqmsquare_mirror-pvc-testbed
+      - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare_mirror-sc-testbed
+          claimName: dqmsquare-mirror-sc-testbed
           readOnly: false
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata: 
-  name: dqmsquare_mirror-robber_oldruns-testbed
+  name: dqmsquare-mirror-robber-oldruns-testbed
   namespace: default
   labels:
-    app: dqmsquare_mirror-robber_oldruns-testbed
+    app: dqmsquare-mirror-robber-oldruns-testbed
 spec:
   selector:
     matchLabels:
-      app: dqmsquare_mirror-robber_oldruns-testbed
+      app: dqmsquare-mirror-robber-oldruns-testbed
   replicas: 1
   template: # This is the pod template
     metadata:
       labels:
-        app: dqmsquare_mirror-robber_oldruns-testbed
+        app: dqmsquare-mirror-robber-oldruns-testbed
     spec:
       containers:
-      - name: dqmsquare_mirror
-        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0 #imagetag
+      - name: dqmsquare-mirror
+        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
         command: ["python3 dqmsquare_robber_oldruns.py"]
         args: []
         resources:
@@ -143,10 +143,10 @@ spec:
             memory: "3Gi"
             cpu: "800m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare_mirror
-            name: dqmsquare_mirror-pvc-testbed
+          - mountPath: /cephfs/testbed/dqmsquare-mirror
+            name: dqmsquare-mirror-pvc-testbed
       volumes:
-      - name: dqmsquare_mirror-pvc-testbed
+      - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare_mirror-sc-testbed
+          claimName: dqmsquare-mirror-sc-testbed
           readOnly: false
