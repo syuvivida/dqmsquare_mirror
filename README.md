@@ -49,11 +49,11 @@ For the creation of RPM:
 * rpm-build  
 
 ##### Deployment with Docker, K8, Python 3.6
-1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0 dqmsquare_mirror  
-   docker run --rm -h `hostname -f` -i -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0  
+1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2 dqmsquare_mirror  
+   docker run --rm -h `hostname -f` -v /home/pmandrik/.mozilla/firefox/vm352ut3.default-default:/firefox_profile_path -i -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
 2. docker login registry.cern.ch   
-3. docker push registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0  
-4. update k8 config yaml to use registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0
+3. docker push registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
+4. update k8 config yaml to use registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2
 5. At lxplus 8 for testbed cmsweb k8 cluster:
 ```
   export KUBECONFIG=/afs/cern.ch/user/m/mimran/public/cmsweb-k8s/config.cmsweb-test4

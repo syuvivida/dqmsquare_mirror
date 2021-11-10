@@ -1,9 +1,10 @@
 import time
 
-geckodriver="../../DQM/TMP/dqmsquare_mirror/geckodriver/geckodriver"
+geckodriver="../../../DQM/TMP/dqmsquare_mirror/geckodriver/geckodriver"
 profile="/home/pmandrik/.mozilla/firefox/vm352ut3.default-default"
+profile="/home/pmandrik/vm352ut3.default-default"
 firefox="/usr/bin/firefox"
-if True:
+if False:
   geckodriver="/usr/bin/geckodriver"
   profile="/firefox_profile_path"
   firefox="/opt/firefox/firefox"
@@ -30,7 +31,6 @@ def test_selenium_firefox():
 
   print("========= 2. load drivers")
   fp = webdriver.FirefoxProfile( profile )
-  geckodriver = Service("/usr/bin/geckodriver", log_path="geckodriver.log");
   driver = webdriver.Firefox(fp, executable_path=geckodriver, options=options)
 
   print("========= 3. get google.com")
@@ -57,11 +57,9 @@ def test_selenium_firefox_cert():
   options.add_argument('--disable-gpu')
   options.add_argument("--disable-dev-shm-usage")
   options.binary_location = firefox
-  options.set_preference('profile', profile)
 
   print("========= 2. load drivers")
   fp = webdriver.FirefoxProfile( profile )
-  geckodriver = Service("/usr/bin/geckodriver", log_path="geckodriver.log");
   driver = webdriver.Firefox(fp, executable_path=geckodriver, options=options)
 
   print("========= 3. get https://cmsweb-testbed.cern.ch/dqm/dqm-square/")

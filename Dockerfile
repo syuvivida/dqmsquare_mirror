@@ -2,7 +2,7 @@ FROM python:3.9
  
 ENV DEBIAN_FRONTEND noninteractive
 ENV GECKODRIVER_VER v0.30.0
-ENV FIREFOX_VER 87.0
+ENV FIREFOX_VER 91.2.0esr
 ENV BOTTLE_VER 0.12.19
  
 RUN apt update
@@ -35,10 +35,12 @@ RUN set -x \
   && tar -xvzf ${BOTTLE_VER}.tar.gz \
   && cp bottle-${BOTTLE_VER}/bottle.py .
 
+RUN apt install -y libnss3-tools
+
 
 RUN mkdir -p /cephfs/testbed/dqmsquare_mirror/
 
-COPY * dqmsquare_mirror
+ADD . /dqmsquare_mirror
 WORKDIR dqmsquare_mirror
 RUN python3 -m pip install -r requirements
 RUN python3 dqmsquare_cfg.py k8
