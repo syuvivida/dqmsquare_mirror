@@ -52,7 +52,7 @@ deploy-srv.sh scripta v1 test4
 Check the status: 
 kubectl get pods -n default
 To login to the pod: 
-kubectl exec -it scripta-... sh -n default
+kubectl exec -it dqmsquare-mirror-grabber-testbed-c48d88d88-87pl8 bash -n default
 To see logs of a pod: 
 kubectl logs scripta-... -n default
 To delete : 

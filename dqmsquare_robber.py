@@ -64,7 +64,7 @@ if __name__ == '__main__':
             log.warning( error_log )
 
       log.info("restart_browser(): setup Selenium WebDriver ...")
-      driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path='./log/geckodriver.log')
+      driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path=cfg['ROBBER_GECKODRIVER_LOG_PATH'])
 
       ### open new tabs
       log.info("restart_browser(): open tabs ...")

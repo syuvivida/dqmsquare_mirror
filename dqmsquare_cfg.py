@@ -49,7 +49,25 @@ cfg["ROBBER_OUTPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_
 cfg["ROBBER_RELOAD_NITERS"] = 100
 cfg["ROBBER_LOG_PATH"]         = "log/robber1.log"
 cfg["ROBBER_OLDRUNS_LOG_PATH"] = "log/robber2.log"
+cfg["ROBBER_GECKODRIVER_LOG_PATH"]         = "log/geckodriver1.log"
+cfg["ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH"] = "log/geckodriver2.log"
 cfg["ROBBER_OLDRUNS_UPDATE_TIME"] = 2. # h, float
+
+def set_k8_options():
+  global cfg
+
+  mount_path = "/cephfs/testbed/dqmsquare_mirror/"
+  cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = mount_path + cfg["SERVER_PATH_TO_PRODUCTION_PAGE"]
+  cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = mount_path + cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]
+  cfg["SERVER_LOG_PATH"]     = mount_path + cfg["SERVER_LOG_PATH"]
+  cfg["PARSER_INPUT_PATHS"]  = ",".join( [mount_path + x for x in cfg["PARSER_INPUT_PATHS"].split(",")] )
+  cfg["PARSER_OUTPUT_PATHS"] = ",".join( [mount_path + x for x in cfg["PARSER_OUTPUT_PATHS"].split(",")] )
+  cfg["PARSER_LOG_PATH"]     = mount_path + cfg["PARSER_LOG_PATH"]
+  cfg["ROBBER_OUTPUT_PATHS"] = ",".join( [mount_path + x for x in cfg["ROBBER_OUTPUT_PATHS"].split(",")] )
+  cfg["ROBBER_LOG_PATH"]         = mount_path + cfg["ROBBER_LOG_PATH"]
+  cfg["ROBBER_OLDRUNS_LOG_PATH"] = mount_path + cfg["ROBBER_OLDRUNS_LOG_PATH"]
+  cfg["ROBBER_GECKODRIVER_LOG_PATH"]         = mount_path + cfg["ROBBER_GECKODRIVER_LOG_PATH"]
+  cfg["ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH"] = mount_path + cfg["ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH"]
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):
@@ -79,6 +97,10 @@ def load_cfg( path, section=cfg_SECTION ):
 
 ### dump default values === >
 if __name__ == '__main__' :
+  import sys
+  if len(sys.argv) > 1 and sys.argv[1] == "k8":
+    set_k8_options()
+
   config = ConfigParser.RawConfigParser()
   config.add_section('OPTIONS')
   opts = [ a for a in cfg.items() ]

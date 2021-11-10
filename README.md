@@ -50,6 +50,7 @@ For the creation of RPM:
 
 ##### Deployment with Docker, K8, Python 3.6
 1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0 dqmsquare_mirror  
+   docker run --rm -h `hostname -f` -i -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0  
 2. docker login registry.cern.ch   
 3. docker push registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0  
 4. update k8 config yaml to use registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre0
