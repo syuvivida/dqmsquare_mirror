@@ -17,9 +17,9 @@ spec:
         app: dqmsquare-mirror-server-testbed
     spec:
       containers:
-      - name: dqmsquare-mirror
-        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
-        command: ["python3 dqmsquare_server.py"]
+      - name: dqmsquare-mirror-server-testbed
+        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre12 #imagetag
+        command: ["./dqmsquare_k8_wrapper.sh", "server"]
         args: []
         resources:
           requests:
@@ -29,12 +29,12 @@ spec:
             memory: "1Gi"
             cpu: "400m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare-mirror
+          - mountPath: /cephfs/testbed
             name: dqmsquare-mirror-pvc-testbed
       volumes:
       - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare-mirror-sc-testbed
+          claimName: dqmsquare-mirror-pvc-testbed
           readOnly: false
 ---
 kind: Deployment
@@ -55,9 +55,9 @@ spec:
         app: dqmsquare-mirror-parser-testbed
     spec:
       containers:
-      - name: dqmsquare-mirror
-        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
-        command: ["python3 dqmsquare_parser.py"]
+      - name: dqmsquare-mirror-parser-testbed
+        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre12 #imagetag
+        command: ["./dqmsquare_k8_wrapper.sh", "parser"]
         args: []
         resources:
           requests:
@@ -67,35 +67,35 @@ spec:
             memory: "1Gi"
             cpu: "400m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare-mirror
+          - mountPath: /cephfs/testbed
             name: dqmsquare-mirror-pvc-testbed
       volumes:
       - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare-mirror-sc-testbed
+          claimName: dqmsquare-mirror-pvc-testbed
           readOnly: false
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata: 
-  name: dqmsquare-mirror-server-testbed
+  name: dqmsquare-mirror-robber-testbed
   namespace: default
   labels:
-    app: dqmsquare-mirror-server-testbed
+    app: dqmsquare-mirror-robber-testbed
 spec:
   selector:
     matchLabels:
-      app: dqmsquare-mirror-server-testbed
+      app: dqmsquare-mirror-robber-testbed
   replicas: 1
   template: # This is the pod template
     metadata:
       labels:
-        app: dqmsquare-mirror-server-testbed
+        app: dqmsquare-mirror-robber-testbed
     spec:
       containers:
-      - name: dqmsquare-mirror
-        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
-        command: ["python3 dqmsquare_robber.py"]
+      - name: dqmsquare-mirror-robber-testbed
+        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre12 #imagetag
+        command: ["./dqmsquare_k8_wrapper.sh", "parser"]
         args: []
         resources:
           requests:
@@ -105,12 +105,12 @@ spec:
             memory: "4Gi"
             cpu: "800m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare-mirror
+          - mountPath: /cephfs/testbed
             name: dqmsquare-mirror-pvc-testbed
       volumes:
       - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare-mirror-sc-testbed
+          claimName: dqmsquare-mirror-pvc-testbed
           readOnly: false
 ---
 kind: Deployment
@@ -131,9 +131,9 @@ spec:
         app: dqmsquare-mirror-robber-oldruns-testbed
     spec:
       containers:
-      - name: dqmsquare-mirror
-        image: registry.cern.ch/cmsweb/dqmsquare-mirror:v1.1.0_pre0 #imagetag
-        command: ["python3 dqmsquare_robber_oldruns.py"]
+      - name: dqmsquare-mirror-robber-oldruns-testbed
+        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre12 #imagetag
+        command: ["./dqmsquare_k8_wrapper.sh", "robber_oldruns"]
         args: []
         resources:
           requests:
@@ -143,10 +143,10 @@ spec:
             memory: "3Gi"
             cpu: "800m"
         volumeMounts:
-          - mountPath: /cephfs/testbed/dqmsquare-mirror
+          - mountPath: /cephfs/testbed
             name: dqmsquare-mirror-pvc-testbed
       volumes:
       - name: dqmsquare-mirror-pvc-testbed
         persistentVolumeClaim:
-          claimName: dqmsquare-mirror-sc-testbed
+          claimName: dqmsquare-mirror-pvc-testbed
           readOnly: false

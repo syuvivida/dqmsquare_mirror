@@ -1,5 +1,5 @@
 
-##### DQM^2 Mirror Page
+#### DQM^2 Mirror Page
 This is a system to grab the information about DQM jobs from DQM^2 site, 
 parse it, removing sensitive information, and show selections outside the P5 are.
 
@@ -25,7 +25,7 @@ Folders:
 * tmp - folder to put output from dqmsquare_robber and dqmsquare_parser
 The RPM post-install script will create this folders. They are also hardcoded in the dqmsquare_server.py.
 
-##### Deployment with RPM, Python 2.7
+#### Deployment with RPM, Python 2.7
 Download repo to your local linux machine. 
 Check dqmsquare_deploy.sh to download extra dependencies and create executables.
 Several options:
@@ -48,9 +48,10 @@ Tested with:
 For the creation of RPM:
 * rpm-build  
 
-##### Deployment with Docker, K8, Python 3.6
+#### Deployment with Docker, K8, Python 3.6
 1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2 dqmsquare_mirror  
-   docker run --rm -h `hostname -f` -v /home/pmandrik/.mozilla/firefox/vm352ut3.default-default:/firefox_profile_path -i -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
+   For testing locally:
+   docker run --rm -h `hostname -f` -v local_config_with_certificates:/firefox_profile_path -i -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
 2. docker login registry.cern.ch   
 3. docker push registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
 4. update k8 config yaml to use registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2
@@ -59,8 +60,14 @@ For the creation of RPM:
   export KUBECONFIG=/afs/cern.ch/user/m/mimran/public/cmsweb-k8s/config.cmsweb-test4
   kubectl apply -f k8_claim_testbed.yaml
   kubectl apply -f k8_config_testbed.yaml
+kubectl exec -it dqmsquare-mirror-grabber-oldruns-testbed-8c984cf6f-h9dlj bash -n default
 ```
-##### Usefull extras
+##### Scripts
+1. dqmsquare_cert.sh imports .pem certificates provided by cmsweb k8 cluster into .p12 format and then into NSS sql DB used by firefox without master password.
+Also, by default Firefox do not know which certificate to use with cmsweb.cern.ch. We can define rules in the Firefox profile locally and then pack profile into Docker image.
+
+
+#### Usefull extras
 * Bottle built-in default server is not for a heavy server load, just for 3-5 shifters
 * Number of logs created by dqmsquare_robber/dqmsquare_robber_oldruns/dqmsquare_parser/dqmsquare_server is limited by TimedRotatingFileHandler
 * dqmsquare_robber.py spawn lot of firefox subprocesses. In case of the dqmsquare_robber process is killed they may persist, requiring the manual killing to free the resources.

@@ -27,14 +27,6 @@ RUN set -x \
    && tar zxf geckodriver-*.tar.gz \
    && mv geckodriver /usr/bin/
 
-# Add bottle
-RUN set -x \
-  && mkdir -p "bottle" \
-  && cd "bottle" \
-  && curl -sSLO https://github.com/bottlepy/bottle/archive/refs/tags/${BOTTLE_VER}.tar.gz \
-  && tar -xvzf ${BOTTLE_VER}.tar.gz \
-  && cp bottle-${BOTTLE_VER}/bottle.py .
-
 RUN apt install -y libnss3-tools
 
 
@@ -44,5 +36,13 @@ ADD . /dqmsquare_mirror
 WORKDIR dqmsquare_mirror
 RUN python3 -m pip install -r requirements
 RUN python3 dqmsquare_cfg.py k8
+
+# Add bottle
+RUN set -x \
+  && mkdir -p "bottle" \
+  && cd "bottle" \
+  && curl -sSLO https://github.com/bottlepy/bottle/archive/refs/tags/${BOTTLE_VER}.tar.gz \
+  && tar -xvzf ${BOTTLE_VER}.tar.gz \
+  && cp bottle-${BOTTLE_VER}/bottle.py .
  
 CMD ["/bin/bash"]

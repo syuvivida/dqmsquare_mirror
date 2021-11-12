@@ -16,6 +16,7 @@ if __name__ == '__main__':
   NAME = "dqmsquare_robber_oldruns.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["ROBBER_OLDRUNS_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["ROBBER_DEBUG"])
+  is_k8 = bool( cfg["ROBBER_K8"] )
 
   log.info("begin ...")
   error_logs = dqmsquare_cfg.ErrorLogs()
@@ -48,7 +49,14 @@ if __name__ == '__main__':
     options.add_argument('--disable-application-cache')
     options.add_argument('--disable-gpu')
     options.add_argument("--disable-dev-shm-usage")
+    if str(cfg["ROBBER_FIREFOX_PATH"]) : options.binary_location = str(cfg["ROBBER_FIREFOX_PATH"])
     driver = None
+
+    ### login cmsweb dqm
+    def cmsweb_dqm_login( driver ):
+      driver.get( str(cfg["ROBBER_K8_LOGIN_PAGE"]) );
+      driver.add_cookie({"name": "selenium-secret-secret", "value": "changeme"})
+      time.sleep( int(cfg["SLEEP_TIME"]) )
 
     ### setup browser driver
     def restart_browser():
@@ -64,7 +72,13 @@ if __name__ == '__main__':
             log.warning( error_log )
 
       log.info("restart_browser(): setup Selenium WebDriver ...")
-      driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path=cfg['ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH'])
+      if str(cfg["ROBBER_FIREFOX_PROFILE_PATH"]):
+        fp = webdriver.FirefoxProfile( str(cfg["ROBBER_FIREFOX_PROFILE_PATH"]) )
+        driver = webdriver.Firefox(fp, options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path=cfg['ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH'])
+      else :
+        driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path=cfg['ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH'])
+
+      if is_k8 : cmsweb_dqm_login( driver )
 
       ### open new tabs
       log.info("restart_browser(): open tabs ...")
@@ -126,7 +140,6 @@ if __name__ == '__main__':
     ### get old runs time-to-time
     def get_old_runs(driver, opath, link, parser_info={}):
       if not bool(cfg["ROBBER_GRAB_OLDRUNS"]) : return
-      driver.switch_to_window( driver.window_handles[-1] )
       log.debug( "get_old_runs(): load link %s ..." % link )
       driver.get( link )
       time.sleep( int(cfg["SLEEP_TIME"]) )

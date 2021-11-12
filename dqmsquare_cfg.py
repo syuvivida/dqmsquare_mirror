@@ -52,6 +52,10 @@ cfg["ROBBER_OLDRUNS_LOG_PATH"] = "log/robber2.log"
 cfg["ROBBER_GECKODRIVER_LOG_PATH"]         = "log/geckodriver1.log"
 cfg["ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH"] = "log/geckodriver2.log"
 cfg["ROBBER_OLDRUNS_UPDATE_TIME"] = 2. # h, float
+cfg["ROBBER_K8"] = False
+cfg["ROBBER_K8_LOGIN_PAGE"] = ""
+cfg["ROBBER_FIREFOX_PATH"] = ""
+cfg["ROBBER_FIREFOX_PROFILE_PATH"] = ""
 
 def set_k8_options():
   global cfg
@@ -68,6 +72,11 @@ def set_k8_options():
   cfg["ROBBER_OLDRUNS_LOG_PATH"] = mount_path + cfg["ROBBER_OLDRUNS_LOG_PATH"]
   cfg["ROBBER_GECKODRIVER_LOG_PATH"]         = mount_path + cfg["ROBBER_GECKODRIVER_LOG_PATH"]
   cfg["ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH"] = mount_path + cfg["ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH"]
+  cfg["ROBBER_K8"] = True
+  cfg["ROBBER_K8_LOGIN_PAGE"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/login"
+  cfg["ROBBER_FIREFOX_PATH"]  = "/opt/firefox/firefox"
+  cfg["ROBBER_GECKODRIVER_PATH"] = "/usr/bin/geckodriver"
+  cfg["ROBBER_FIREFOX_PROFILE_PATH"] = "/firefox_profile_path"
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):

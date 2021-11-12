@@ -61,11 +61,17 @@ def test_selenium_firefox_cert():
   print("========= 2. load drivers")
   fp = webdriver.FirefoxProfile( profile )
   driver = webdriver.Firefox(fp, executable_path=geckodriver, options=options)
+  driver.add_cookie({"name": "selenium-secret", "value": "changeme"})
 
-  print("========= 3. get https://cmsweb-testbed.cern.ch/dqm/dqm-square/")
-  driver.get( "https://cmsweb-testbed.cern.ch/dqm/dqm-square/" );
+  print("========= 3. get https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html")
+  driver.get( "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/login" );
+  driver.add_cookie({"name": "selenium-secret", "value": "changeme"})
+
   time.sleep( 3 )
+  driver.get( "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html" );
+
   print(   driver.page_source.encode('utf-8') )
+
 
 if __name__ == '__main__':
   print("\n\n\n  test_selenium_firefox():")
