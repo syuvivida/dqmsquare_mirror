@@ -1,15 +1,15 @@
 FROM python:3.9
+
+RUN apt update
+RUN apt upgrade -y
+RUN apt install -y firefox-esr 
+RUN apt install -y nano iputils-ping sudo
  
 ENV DEBIAN_FRONTEND noninteractive
 ENV GECKODRIVER_VER v0.30.0
 ENV FIREFOX_VER 91.2.0esr
 ENV BOTTLE_VER 0.12.19
- 
-RUN apt update
-RUN apt upgrade -y
-RUN apt install -y firefox-esr 
-RUN apt install -y nano iputils-ping
- 
+
 # Add latest FireFox
 RUN set -x \
    && apt install -y \
@@ -43,5 +43,10 @@ RUN set -x \
   && curl -sSLO https://github.com/bottlepy/bottle/archive/refs/tags/${BOTTLE_VER}.tar.gz \
   && tar -xvzf ${BOTTLE_VER}.tar.gz \
   && cp bottle-${BOTTLE_VER}/bottle.py .
+
+# add new user, add user to sudoers file, switch to user
+RUN useradd 1000
+RUN echo "%1000 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+USER 1000
  
 CMD ["/bin/bash"]
