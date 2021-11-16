@@ -60,8 +60,11 @@ For the creation of RPM:
   export KUBECONFIG=/afs/cern.ch/user/m/mimran/public/cmsweb-k8s/config.cmsweb-test4
   kubectl apply -f k8_claim_testbed.yaml
   kubectl apply -f k8_config_testbed.yaml
-kubectl exec -it dqmsquare-mirror-grabber-oldruns-testbed-8c984cf6f-h9dlj bash -n default
 ```
+to login inti pod :   
+kubectl exec -it dqmsquare-mirror-grabber-oldruns-testbed-8c984cf6f-h9dlj bash -n default  
+6. 
+
 ##### Scripts
 1. dqmsquare_cert.sh imports .pem certificates provided by cmsweb k8 cluster into .p12 format and then into NSS sql DB used by firefox without master password.
 Also, by default Firefox do not know which certificate to use with cmsweb.cern.ch. We can define rules in the Firefox profile locally and then pack profile into Docker image.
@@ -75,7 +78,6 @@ Also, by default Firefox do not know which certificate to use with cmsweb.cern.c
  ./dqmsquare_deploy.sh build
 * at p5 for installation, for example  
   sudo rpm -e dqmsquare_mirror; sudo rpm -i /nfshome0/pmandrik/dqmsquare_mirror-1.0.0-1.x86_64.rpm
-* 
 
 
 

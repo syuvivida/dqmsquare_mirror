@@ -11,6 +11,7 @@ if [ $service = "robber" ] ; then
 fi
 
 if [ $service = "robber_oldruns" ] ; then
+  ./dqmsquare_cert.sh
   python3 dqmsquare_robber_oldruns.py
 fi
 

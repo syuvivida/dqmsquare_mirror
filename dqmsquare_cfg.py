@@ -77,6 +77,7 @@ def set_k8_options():
   cfg["ROBBER_FIREFOX_PATH"]  = "/opt/firefox/firefox"
   cfg["ROBBER_GECKODRIVER_PATH"] = "/usr/bin/geckodriver"
   cfg["ROBBER_FIREFOX_PROFILE_PATH"] = "/firefox_profile_path"
+  cfg["ROBBER_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):

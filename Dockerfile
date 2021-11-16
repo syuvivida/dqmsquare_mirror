@@ -29,7 +29,6 @@ RUN set -x \
 
 RUN apt install -y libnss3-tools
 
-
 RUN mkdir -p /cephfs/testbed/dqmsquare_mirror/
 
 ADD . /dqmsquare_mirror
