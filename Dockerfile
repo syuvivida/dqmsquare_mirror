@@ -44,6 +44,10 @@ RUN set -x \
   && tar -xvzf ${BOTTLE_VER}.tar.gz \
   && cp bottle-${BOTTLE_VER}/bottle.py .
 
+# set CERN time zone
+ENV TZ="Europe/Zurich"
+RUN date
+
 # add new user, add user to sudoers file, switch to user
 RUN useradd 1000
 RUN echo "%1000 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers

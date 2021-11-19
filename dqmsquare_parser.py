@@ -37,6 +37,7 @@ class DQMPageData( ):
     d = {"name" : self.GetServerName(name), "state" : state}
     d["state_attr"] = 'style="background-color:' + self.colors["Y"] + '"'
     if "live" in state : d["state_attr"] = 'style="background-color:' + self.colors["G"] + '"'
+    if "http mode" in state : d["state_attr"] = 'style="background-color:' + self.colors["G"] + '"'
     if "closed" in state : d["state_attr"] = 'style="background-color:' + self.colors["R"] + '"'
     self.servers += [ d ]
 

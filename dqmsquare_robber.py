@@ -176,6 +176,7 @@ if __name__ == '__main__':
 
           log.debug( "get content from " + sites[i] + " - \"" + content[:100] + "...\"" )
           save_site( content, opaths[i] )
+          if is_k8: driver.refresh()
 
       except KeyboardInterrupt:
         break
