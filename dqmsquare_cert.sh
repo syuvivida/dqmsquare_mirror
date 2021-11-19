@@ -9,5 +9,6 @@ certutil -N --empty-password -d sql:/db999
 pk12util -i Cert.p12 -d sql:/db999 -W changeme
 cp /db999/* /firefox_profile_path/.
 
-mkdir -p /cephfs/testbed/dqmsquare_mirror/tmp/
-mkdir -p /cephfs/testbed/dqmsquare_mirror/log/
+chmod 777 /firefox_profile_path
+find /firefox_profile_path -type d -exec chmod 777 {} \; 
+find /firefox_profile_path -type f -exec chmod 777 {} \;

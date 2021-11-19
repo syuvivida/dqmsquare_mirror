@@ -47,6 +47,10 @@ RUN set -x \
 # add new user, add user to sudoers file, switch to user
 RUN useradd 1000
 RUN echo "%1000 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN mkdir -p /home/1000/
+RUN chmod 777 /home/1000/
 USER 1000
+RUN sudo find /dqmsquare_mirror -type d -exec chmod 777 {} \; 
+RUN sudo find /dqmsquare_mirror -type f -exec chmod 777 {} \;
  
 CMD ["/bin/bash"]

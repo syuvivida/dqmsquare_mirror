@@ -23,7 +23,7 @@ class DQMPageData( ):
     self.input_file  = input_file
     self.run_number = "-"
     self.origin_run_number = ""
-    self.link_prefix = ""
+    self.link_prefix = self.cfg["PARSER_LINK_PREFIX"]
     self.old_runs_pages = []
 
     self.colors = {"G" : "#52BE80", "R" : "#EC7063", "Y" : "#F4D03F", "title" : "#2471a3" }
@@ -95,7 +95,7 @@ class DQMPageData( ):
       for run_id, link in self.old_runs_pages :
         if str(run_id) == str(self.run_number) : continue # extra skip the duplicate of on-going run in this list
         if link : 
-          content += '<a href="'+link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
+          content += '<a href="'+self.link_prefix + link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
         else : 
           content += '<strong>' + run_id + '</strong>&nbsp;'
       content += '\n\n'
@@ -149,7 +149,7 @@ class DQMPageData( ):
       fname    = os.path.basename(self.input_file)
       for item in os.listdir( dir_name ) : 
         if not dqmsquare_cfg.is_TMP_robber_canvas_name( fname, item ) : continue
-        content += "<img src=" + os.path.join(dir_name, item) + ">\n"
+        content += "<img src=" + self.link_prefix + os.path.join(dir_name, item) + ">\n"
 
     ### write out body
     if self.output_file and write_out : 
@@ -363,10 +363,10 @@ if __name__ == '__main__':
         dqm_data.Dump(True, True)
         processes_pages += [ ipaths[i] ]
 
-        if bool(cfg["TMP_CLEAN_FILES"]) :
+      if bool(cfg["TMP_CLEAN_FILES"]) :
+        for folder in cfg["TMP_FOLDER_TO_CLEAN"].split(",") :
           try:
-            dqmsquare_cfg.clean_folder( ipaths[i], int(cfg["SLEEP_TIME"]), log ) # robber i-th tmp folder
-            dqmsquare_cfg.clean_folder( opaths[i], int(cfg["SLEEP_TIME"]), log ) # parser i-th tmp folder
+            dqmsquare_cfg.clean_folder( folder, int(cfg["TMP_FILES_LIFETIME"]), log )
           except Exception as error_log:
             log.warning("parser crashed for cleaning tmp folders ...")
             log.warning(error_log)

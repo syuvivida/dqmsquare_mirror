@@ -44,31 +44,59 @@ Tested with:
 * Bottle: 0.12.19  
 * Geckodriver: 0.29.1  
 * PyInstaller: 3.4  
-
 For the creation of RPM:
+
 * rpm-build  
 
 #### Deployment with Docker, K8, Python 3.6
+We are using cmsweb k8 cluster to host our pods: server, parser and two grabbers. They are packed into single Docker image.
+Server available to world-wide-web through cmsweb frontiend proxy. Grabber also connected to P5 through cmsweb frontiend proxy.
+Cmsweb frontiend is required by default autentification using cern grid certificate, we are using one provided by cmsweb team to k8 cluster.
+Also, by default Firefox do not know which certificate to use with cmsweb.cern.ch. We define rules in the Firefox profile locally and then pack profile into Docker image.
+The connection at P5 to DQM^2 is closed without autentification cookie defined in DQM^2 backend (fff_web.py). Cookie transfered to k8 cluster following FIXME.
+To store log and tmp we mount CephFS. Claim for CephFS is defined in k8_claim_testbed.yaml for testbed cluster. In production and preproduction cluster CephFS volume is created by cmsweb team.
+Also, they are requested Docker image to be defined to use not root user. Docker source image is python:3.9, cmsweb images not work well with firefox & geckodriver.
+In general, source image and selenium, firefox, geckodriver versions are carefully selected to be able to work together with available code.
+
 1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2 dqmsquare_mirror  
    For testing locally:
    docker run --rm -h `hostname -f` -v local_config_with_certificates:/firefox_profile_path -i -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
 2. docker login registry.cern.ch   
 3. docker push registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
-4. update k8 config yaml to use registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2
-5. At lxplus 8 for testbed cmsweb k8 cluster:
+
+For testbed cmsweb k8 cluster:
+* update k8 config yaml to use registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2
+* At lxplus 8:
 ```
   export KUBECONFIG=/afs/cern.ch/user/m/mimran/public/cmsweb-k8s/config.cmsweb-test4
-  kubectl apply -f k8_claim_testbed.yaml
+  kubectl apply -f k8_claim_testbed.yaml (once if PVC not available)
   kubectl apply -f k8_config_testbed.yaml
 ```
-to login inti pod :   
+to login into a pod :   
 kubectl exec -it dqmsquare-mirror-grabber-oldruns-testbed-8c984cf6f-h9dlj bash -n default  
-6. 
+While Service claim with port definition is avalable in testbed yaml maifest file it is not supported by cmsweb.
+
+For preproduction cmsweb k8 cluster:
+* get config from https://cms-http-group.docs.cern.ch/k8s_cluster/cmsweb_testbed_cluster_doc/ 
+   and follow https://cms-http-group.docs.cern.ch/k8s_cluster/deploy-srv/ for deployment.
+   We store yaml manifests at https://github.com/dmwm/CMSKubernetes:  
+```
+export OS_TOKEN=$(openstack token issue -c id -f value)
+export KUBECONFIG=$PWD/config.cmsweb-testbed
+cd CMSKubernetes/kubernetes/cmsweb
+./scripts/deploy-srv.sh dqmsquare v1.1.0_pre23 preprod
+```
+
+Tested with:  
+* Python: 3.6  
+* Bottle: 0.12.19  
+* Geckodriver: 0.30.0  
+* beautifulsoup4==4.10.0
+* selenium==3.141.0
+* Firefox 91.2.0esr
 
 ##### Scripts
 1. dqmsquare_cert.sh imports .pem certificates provided by cmsweb k8 cluster into .p12 format and then into NSS sql DB used by firefox without master password.
-Also, by default Firefox do not know which certificate to use with cmsweb.cern.ch. We can define rules in the Firefox profile locally and then pack profile into Docker image.
-
 
 #### Usefull extras
 * Bottle built-in default server is not for a heavy server load, just for 3-5 shifters
