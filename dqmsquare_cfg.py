@@ -13,20 +13,23 @@ print( "\n\n\n================================== dqmsquare_cfg() v", cfg["VERSIO
 
 cfg["SLEEP_TIME"] = 5 #sec, int
 cfg["SLEEP_TIME_LONG"] = 30 #sec, int
-cfg["TMP_FILES_LIFETIME"] = 100 # h, int
-cfg["TMP_CLEAN_FILES"] = False
+cfg["TMP_FILES_LIFETIME"] = 24 * 30 # h, int
+cfg["TMP_CLEAN_FILES"] = True
+cfg["TMP_FOLDER_TO_CLEAN"] = "tmp"
 cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
-cfg["LOGGER_MAX_N_LOG_FILES"] = 30 # int
-cfg["FIREFOX_RELOAD_NITERS"] = 10000 # 10000 # int ~ twice per week - 24 * 7 * 60 * 60 / 30
+cfg["LOGGER_MAX_N_LOG_FILES"] = 15 # int
+cfg["FIREFOX_RELOAD_NITERS"] = 5000 # 10000 # int ~ twice per week - 24 * 7 * 60 * 60 / 30
 
 #cfg["SERVER_LOCAL"] = True
-cfg["SERVER_DEBUG"] = False
+cfg["SERVER_DEBUG"] = True
+cfg["SERVER_K8"]    = False
 cfg["SERVER_HOST"]  = '0.0.0.0'
 cfg["SERVER_PORT"]  = 8887
 cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = "tmp/content_parser_production"
 cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/server.log"
+cfg["SERVER_DATA_PATH"]               = "."
 
 cfg["PARSER_DEBUG"]  = False
 cfg["PARSER_RANDOM"] = False
@@ -37,6 +40,7 @@ cfg["PARSER_MAX_OLDRUNS"]  = 17 # int
 cfg["PARSER_INPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
 cfg["PARSER_OUTPUT_PATHS"] = "tmp/content_parser_production,tmp/content_parser_playback"
 cfg["PARSER_LOG_PATH"]     = "log/parser.log"
+cfg["PARSER_LINK_PREFIX"]  = ""
 
 cfg["ROBBER_BACKEND"] = "selenium"
 cfg["ROBBER_GECKODRIVER_PATH"] = "geckodriver/geckodriver"
@@ -61,12 +65,17 @@ def set_k8_options():
   global cfg
 
   mount_path = "/cephfs/testbed/dqmsquare_mirror/"
-  cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = mount_path + cfg["SERVER_PATH_TO_PRODUCTION_PAGE"]
-  cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = mount_path + cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]
+  cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = mount_path[1:] + cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] 
+  cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = mount_path[1:] + cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]
+  cfg["TMP_FOLDER_TO_CLEAN"] = mount_path + cfg["TMP_FOLDER_TO_CLEAN"]
+  cfg["SERVER_PORT"] = 8084
+  cfg["SERVER_DATA_PATH"] = mount_path
+  cfg["SERVER_K8"] = True
   cfg["SERVER_LOG_PATH"]     = mount_path + cfg["SERVER_LOG_PATH"]
   cfg["PARSER_INPUT_PATHS"]  = ",".join( [mount_path + x for x in cfg["PARSER_INPUT_PATHS"].split(",")] )
   cfg["PARSER_OUTPUT_PATHS"] = ",".join( [mount_path + x for x in cfg["PARSER_OUTPUT_PATHS"].split(",")] )
   cfg["PARSER_LOG_PATH"]     = mount_path + cfg["PARSER_LOG_PATH"]
+  cfg["PARSER_LINK_PREFIX"]  = "/dqm/dqm-square-k8"
   cfg["ROBBER_OUTPUT_PATHS"] = ",".join( [mount_path + x for x in cfg["ROBBER_OUTPUT_PATHS"].split(",")] )
   cfg["ROBBER_LOG_PATH"]         = mount_path + cfg["ROBBER_LOG_PATH"]
   cfg["ROBBER_OLDRUNS_LOG_PATH"] = mount_path + cfg["ROBBER_OLDRUNS_LOG_PATH"]
@@ -77,6 +86,7 @@ def set_k8_options():
   cfg["ROBBER_FIREFOX_PATH"]  = "/opt/firefox/firefox"
   cfg["ROBBER_GECKODRIVER_PATH"] = "/usr/bin/geckodriver"
   cfg["ROBBER_FIREFOX_PROFILE_PATH"] = "/firefox_profile_path"
+  cfg["ROBBER_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):
@@ -239,9 +249,10 @@ def delete_file( path_to_file, log ):
   log.debug( "delete_file(): remove file %s" % path_to_file )
   return True
 
+import time, os
 def clean_folder(path_to_outfile, threshold, log):
-  log.info( "clean_folder(): remove old files for %s" % path_to_outfile )
-  dir_name = os.path.dirname(self.path_to_outfile)
+  if log : log.debug( "clean_folder(): remove old files for %s" % path_to_outfile )
+  dir_name = os.path.dirname( path_to_outfile )
   for item in os.listdir( dir_name ) : 
     f = os.path.join(dir_name, item)
     timestamp = os.path.getmtime( f )

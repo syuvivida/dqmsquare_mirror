@@ -33,7 +33,7 @@ if __name__ == '__main__':
     exit()
 
   def save_site( content, path ):
-    file = open( path, "w" )
+    file = open( path, "w", encoding="utf8" )
     file.write( content )
     file.close()
 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
               break
 
       log.debug("dqm_2_grab(): return data ... ")
-      return driver.page_source.encode('utf-8')
+      return driver.page_source
 
     ### start site sessions
     def reload_pages():
@@ -141,7 +141,7 @@ if __name__ == '__main__':
       for i in range(N_targets):
         driver.switch_to_window( driver.window_handles[i] )
         try:
-          if is_k8 : cmsweb_dqm_login( driver )
+          if is_k8 : cmsweb_dqm_login( driver)
           driver.get( sites[i] );
           list_good_sites[i] = True
         except Exception as error_log:
@@ -176,6 +176,7 @@ if __name__ == '__main__':
 
           log.debug( "get content from " + sites[i] + " - \"" + content[:100] + "...\"" )
           save_site( content, opaths[i] )
+          if is_k8: driver.refresh()
 
       except KeyboardInterrupt:
         break

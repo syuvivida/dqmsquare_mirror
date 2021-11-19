@@ -2,7 +2,7 @@
 
 import dqmsquare_cfg
 
-import time, base64
+import time, base64, os
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     exit()
 
   def save_site( content, path ):
-    file = open( path, "w" )
+    file = open( path, "w", encoding="utf8" )
     file.write( content )
     file.close()
 
@@ -135,7 +135,7 @@ if __name__ == '__main__':
               break
 
       log.debug("dqm_2_grab(): return data ... ")
-      return driver.page_source.encode('utf-8')
+      return driver.page_source
 
     ### get old runs time-to-time
     def get_old_runs(driver, opath, link, parser_info={}):

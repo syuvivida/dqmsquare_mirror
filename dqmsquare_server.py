@@ -12,28 +12,6 @@ from bottle import default_app
 import logging
 log = logging.getLogger(__name__)
 
-#@error(404)
-#@error(403)
-@route('/')
-def greet(name='Stranger'):
-  return static_file("dqm_mirror.html", root='./static/')
-
-@route('/static/<filename>')
-def get_static(filename):
-  return static_file(filename, root='./static/')
-
-@route('/tmp/<filename>')
-@route('/tmp/tmp/<filename>')
-def get_tmp(filename):
-  content = static_file(filename, root='./tmp/')
-  return static_file(filename, root='./tmp/')
-
-@route('/log/<filename>')
-@route('/tmp/log/<filename>')
-def get_tmp(filename):
-  content = static_file(filename, root='./log/')
-  return static_file(filename, root='./log/')
-
 ### wrapper for logs
 from functools import wraps
 from datetime import datetime
@@ -74,6 +52,51 @@ if __name__ == '__main__':
     ofile = open("static/dqm_mirror.html","w")
     ofile.write( content )
     ofile.close()
+
+  if cfg["SERVER_K8"] :
+    ### K8
+    SERVER_DATA_PATH = cfg["SERVER_DATA_PATH"]
+    @route('/dqm/dqm-square-k8')
+    @route('/dqm/dqm-square-k8/')
+    def greet(name='Stranger'):
+      return static_file("dqm_mirror.html", root='./static/')
+
+    @route('/dqm/dqm-square-k8/static/<filename>')
+    def get_static(filename):
+      return static_file(filename, root='./static/')
+
+    @route('/dqm/dqm-square-k8' + SERVER_DATA_PATH + 'tmp/<filename>')
+    @route('/dqm/dqm-square-k8' + SERVER_DATA_PATH + 'tmp/tmp/<filename>')
+    def get_tmp(filename):
+      content = static_file(filename, root=SERVER_DATA_PATH+'tmp/')
+      return content
+
+    @route('/dqm/dqm-square-k8' + SERVER_DATA_PATH + 'log/<filename>')
+    @route('/dqm/dqm-square-k8' + SERVER_DATA_PATH + 'tmp/log/<filename>')
+    def get_tmp(filename):
+      content = static_file(filename, root=SERVER_DATA_PATH+'log/')
+      return content
+
+  else :
+    @route('/')
+    def greet(name='Stranger'):
+      return static_file("dqm_mirror.html", root='./static/')
+
+    @route('/static/<filename>')
+    def get_static(filename):
+      return static_file(filename, root='./static/')
+
+    @route('/tmp/<filename>')
+    @route('/tmp/tmp/<filename>')
+    def get_tmp(filename):
+      content = static_file(filename, root='./tmp/')
+      return content
+
+    @route('/log/<filename>')
+    @route('/tmp/log/<filename>')
+    def get_tmp(filename):
+      content = static_file(filename, root='./log/')
+      return content
 
   log.info("make_dqm_mirrow_page() call ... ")
   make_dqm_mirrow_page( cfg )

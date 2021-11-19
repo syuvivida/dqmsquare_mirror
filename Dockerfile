@@ -1,15 +1,15 @@
 FROM python:3.9
+
+RUN apt update
+RUN apt upgrade -y
+RUN apt install -y firefox-esr 
+RUN apt install -y nano iputils-ping sudo
  
 ENV DEBIAN_FRONTEND noninteractive
 ENV GECKODRIVER_VER v0.30.0
 ENV FIREFOX_VER 91.2.0esr
 ENV BOTTLE_VER 0.12.19
- 
-RUN apt update
-RUN apt upgrade -y
-RUN apt install -y firefox-esr 
-RUN apt install -y nano iputils-ping
- 
+
 # Add latest FireFox
 RUN set -x \
    && apt install -y \
@@ -29,7 +29,6 @@ RUN set -x \
 
 RUN apt install -y libnss3-tools
 
-
 RUN mkdir -p /cephfs/testbed/dqmsquare_mirror/
 
 ADD . /dqmsquare_mirror
@@ -44,5 +43,18 @@ RUN set -x \
   && curl -sSLO https://github.com/bottlepy/bottle/archive/refs/tags/${BOTTLE_VER}.tar.gz \
   && tar -xvzf ${BOTTLE_VER}.tar.gz \
   && cp bottle-${BOTTLE_VER}/bottle.py .
+
+# set CERN time zone
+ENV TZ="Europe/Zurich"
+RUN date
+
+# add new user, add user to sudoers file, switch to user
+RUN useradd 1000
+RUN echo "%1000 ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN mkdir -p /home/1000/
+RUN chmod 777 /home/1000/
+USER 1000
+RUN sudo find /dqmsquare_mirror -type d -exec chmod 777 {} \; 
+RUN sudo find /dqmsquare_mirror -type f -exec chmod 777 {} \;
  
 CMD ["/bin/bash"]

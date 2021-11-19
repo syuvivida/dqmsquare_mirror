@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: dqmsquare-mirror
-        image: registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre1 #imagetag
+        image: registry.cern.ch/cmsweb/dqmsquare_mirror #imagetag
         command: [ "/bin/bash", "-c", "--" ]
         args: [ "while true; do sleep 30; done;" ]
         resources:
