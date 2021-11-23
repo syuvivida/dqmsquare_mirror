@@ -53,7 +53,8 @@ We are using cmsweb k8 cluster to host our pods: server, parser and two grabbers
 Server available to world-wide-web through cmsweb frontiend proxy. Grabber also connected to P5 through cmsweb frontiend proxy.
 Cmsweb frontiend is required by default autentification using cern grid certificate, we are using one provided by cmsweb team to k8 cluster.
 Also, by default Firefox do not know which certificate to use with cmsweb.cern.ch. We define rules in the Firefox profile locally and then pack profile into Docker image.
-The connection at P5 to DQM^2 is closed without autentification cookie defined in DQM^2 backend (fff_web.py). Cookie transfered to k8 cluster following FIXME.
+The connection at P5 to DQM^2 is closed without autentification cookie defined in DQM^2 backend (fff_web.py). 
+Cookie autentification value is transfered to k8 cluster using Opaque Secret defined in k8_secret.yaml. 
 To store log and tmp we mount CephFS. Claim for CephFS is defined in k8_claim_testbed.yaml for testbed cluster. In production and preproduction cluster CephFS volume is created by cmsweb team.
 Also, they are requested Docker image to be defined to use not root user. Docker source image is python:3.9, cmsweb images not work well with firefox & geckodriver.
 In general, source image and selenium, firefox, geckodriver versions are carefully selected to be able to work together with available code.
@@ -73,7 +74,9 @@ For testbed cmsweb k8 cluster:
   kubectl apply -f k8_config_testbed.yaml
 ```
 to login into a pod :   
-kubectl exec -it dqmsquare-mirror-grabber-oldruns-testbed-8c984cf6f-h9dlj bash -n default  
+```
+  kubectl exec -it dqmsquare-mirror-grabber-oldruns-testbed-8c984cf6f-h9dlj bash -n dqm 
+```
 While Service claim with port definition is avalable in testbed yaml maifest file it is not supported by cmsweb.
 
 For preproduction cmsweb k8 cluster:
@@ -81,10 +84,15 @@ For preproduction cmsweb k8 cluster:
    and follow https://cms-http-group.docs.cern.ch/k8s_cluster/deploy-srv/ for deployment.
    We store yaml manifests at https://github.com/dmwm/CMSKubernetes:  
 ```
-export OS_TOKEN=$(openstack token issue -c id -f value)
-export KUBECONFIG=$PWD/config.cmsweb-testbed
-cd CMSKubernetes/kubernetes/cmsweb
-./scripts/deploy-srv.sh dqmsquare v1.1.0_pre23 preprod
+  export OS_TOKEN=$(openstack token issue -c id -f value)
+  export KUBECONFIG=$PWD/config.cmsweb-testbed
+  cd CMSKubernetes/kubernetes/cmsweb
+  ./scripts/deploy-srv.sh dqmsquare v1.1.0_pre23 preprod
+```
+Also create Secret if it is not created before or edit it:
+```
+kubectl apply -f k8_secret.yaml -n dqm
+kubectl edit secrets dqmsecret -n dqm
 ```
 
 Tested with:  

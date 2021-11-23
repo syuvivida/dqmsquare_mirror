@@ -8,6 +8,7 @@ openstack server add volume vmname voname
 openstack console url show vmname
 Login via : 
 ssh root@vmname.cern.ch
+ssh root@vmpmandrik1.cern.ch
 
 **Run locally (assuming different consoles):**  
 mkdir tmp
