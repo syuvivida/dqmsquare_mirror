@@ -75,7 +75,7 @@ For testbed cmsweb k8 cluster:
 ```
 to login into a pod :   
 ```
-  kubectl exec -it dqmsquare-mirror-grabber-oldruns-testbed-8c984cf6f-h9dlj bash -n dqm 
+  kubectl exec -it dqm-square-mirror-robber-6cdfd96988-2v527 bash -n dqm 
 ```
 While Service claim with port definition is avalable in testbed yaml maifest file it is not supported by cmsweb.
 

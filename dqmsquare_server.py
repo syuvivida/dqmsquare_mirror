@@ -98,6 +98,10 @@ if __name__ == '__main__':
       content = static_file(filename, root='./log/')
       return content
 
+    @route('/cr')
+    def get_static(name='Stranger'):
+      return static_file("dqm_cr.html", root='./static/')
+
   log.info("make_dqm_mirrow_page() call ... ")
   make_dqm_mirrow_page( cfg )
 

@@ -20,7 +20,14 @@ if __name__ == '__main__':
 
   selenium_secret="changeme"
   if is_k8:
-    selenium_secret = base64.b64encode( os.environ['DQM_PASSWORD'].encode() )
+    try : 
+      temp = os.environ['DQM_PASSWORD']
+      temp = temp.encode()
+      temp = base64.b64encode( temp )
+      selenium_secret = temp.decode("utf-8")
+    except Exception as error_log:
+      log.warning( "dqm_2_grab(): can't load DQM_PASSWORD cookie" )
+      log.warning( error_log )
 
   log.info("begin ...")
   error_logs = dqmsquare_cfg.ErrorLogs()
@@ -103,8 +110,8 @@ if __name__ == '__main__':
             if span.get_attribute("ng-click") == "_show_inline = 'log'":
               scroll_shim( driver, span )
               ActionChains(driver).move_to_element(span).click().perform()
-          except bool(cfg["ROBBER_DEBUG"]) or Exception as error_log:
-            if error_logs.Check( "click on log button", error_log ) :
+          except Exception as error_log:
+            if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "click on log button", error_log ) :
               log.warning( "dqm_2_grab(): can't click on log button" )
               log.warning( error_log )
 
