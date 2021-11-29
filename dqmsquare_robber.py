@@ -2,7 +2,7 @@
 
 import dqmsquare_cfg
 
-import time, base64
+import time, base64, os, sys
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,6 +17,17 @@ if __name__ == '__main__':
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["ROBBER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["ROBBER_DEBUG"])
   is_k8 = bool( cfg["ROBBER_K8"] )
+
+  selenium_secret="changeme"
+  if is_k8:
+    try : 
+      temp = os.environ['DQM_PASSWORD']
+      temp = temp.encode()
+      temp = base64.b64encode( temp )
+      selenium_secret = temp.decode("utf-8")
+    except Exception as error_log:
+      log.warning( "dqm_2_grab(): can't load DQM_PASSWORD cookie" )
+      log.warning( error_log )
 
   log.info("begin ...")
   error_logs = dqmsquare_cfg.ErrorLogs()
@@ -54,8 +65,9 @@ if __name__ == '__main__':
 
     ### login cmsweb dqm
     def cmsweb_dqm_login( driver ):
+      if not is_k8 : return
       driver.get( str(cfg["ROBBER_K8_LOGIN_PAGE"]) );
-      driver.add_cookie({"name": "selenium-secret-secret", "value": "changeme"})
+      driver.add_cookie({"name": "selenium-secret-secret", "value": selenium_secret})
       time.sleep( int(cfg["SLEEP_TIME"]) )
 
     ### setup browser driver
@@ -98,8 +110,8 @@ if __name__ == '__main__':
             if span.get_attribute("ng-click") == "_show_inline = 'log'":
               scroll_shim( driver, span )
               ActionChains(driver).move_to_element(span).click().perform()
-          except bool(cfg["ROBBER_DEBUG"]) or Exception as error_log:
-            if error_logs.Check( "click on log button", error_log ) :
+          except Exception as error_log:
+            if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "click on log button", error_log ) :
               log.warning( "dqm_2_grab(): can't click on log button" )
               log.warning( error_log )
 
