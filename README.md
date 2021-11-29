@@ -94,6 +94,11 @@ Also create Secret if it is not created before or edit it:
 kubectl apply -f k8_secret.yaml -n dqm
 kubectl edit secrets dqmsecret -n dqm
 ```
+Deployment to the production cmsweb is similare, follow:
+https://cms-http-group.docs.cern.ch/k8s_cluster/cmsweb_production_cluster_doc/
+```
+./scripts/deploy-srv.sh dqmsquare v1.1.0_pre34 prod
+```
 
 Tested with:  
 * Python: 3.6  

@@ -76,8 +76,8 @@ if __name__ == '__main__':
     def get_tmp(filename):
       content = static_file(filename, root=SERVER_DATA_PATH+'log/')
       return content
-
   else :
+    ### DQM^2 Mirror ###
     @route('/')
     def greet(name='Stranger'):
       return static_file("dqm_mirror.html", root='./static/')
@@ -98,9 +98,46 @@ if __name__ == '__main__':
       content = static_file(filename, root='./log/')
       return content
 
+    ### CR ###
     @route('/cr')
     def get_static(name='Stranger'):
       return static_file("dqm_cr.html", root='./static/')
+
+    @route('/cr/get_dqm_machines')
+    def cr_get_dqm_machines():
+      machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
+      return machines
+
+    @route('/cr/get_playback_config')
+    def cr_get_dqm_machines():
+      machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
+      return machines
+
+    @route('/cr/start_playback_run')
+    def cr_get_dqm_machines():
+      machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
+      return machines
+
+    # HLTD
+    @route('/cr/get_hltd_versions')
+    def cr_get_hltd_versions():
+      import time
+      time.sleep( 5 )
+      print( request.headers.keys() )
+      if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return 'This is an AJAX request'
+      else:
+        return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
+
+    @route('/cr/restart_hltd')
+    def cr_restart_hltd():
+      return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
+
+    @route('/cr/get_hltd_logs')
+    def cr_get_hltd_logs():
+      import time
+      time.sleep( 5 )
+      return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
 
   log.info("make_dqm_mirrow_page() call ... ")
   make_dqm_mirrow_page( cfg )

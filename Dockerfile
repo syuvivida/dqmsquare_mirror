@@ -2,6 +2,9 @@ FROM python:3.9
 
 RUN apt update
 RUN apt upgrade -y
+# RUN apt remove -y imagemagick-6-common libaom0 libbluetooth-dev libbluetooth3 libapparmor1 libcairo2 libcairo2-dev 
+# RUN apt remove -y libnss3 libopenjp2-7 mariadb-common libctf-nobfd0 libctf0
+# RUN apt -y autoremove
 RUN apt install -y firefox-esr 
 RUN apt install -y nano iputils-ping sudo
  

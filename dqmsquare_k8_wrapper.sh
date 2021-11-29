@@ -4,7 +4,7 @@ service=$1
 
 sudo mkdir -p /cephfs/testbed/dqmsquare_mirror/tmp/
 sudo mkdir -p /cephfs/testbed/dqmsquare_mirror/log/
-chmod +rwx /cephfs/testbed/dqmsquare_mirror
+sudo find /cephfs/testbed/dqmsquare_mirror -type d -exec chmod 777 {} \;
 
 if [ $service = "robber" ] ; then
   sudo ./dqmsquare_cert.sh
