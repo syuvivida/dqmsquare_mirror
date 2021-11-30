@@ -1,0 +1,43 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: dqm2test
+  namespace: default
+  labels:
+    app: dqm2test
+spec:
+  selector:
+    matchLabels:
+      app: dqm2test
+  replicas: 1
+  template: # This is the pod template
+    metadata:
+      labels:
+        app: dqm2test
+    spec:
+      containers:
+      - name: dqmsquare-mirror
+        image: registry.cern.ch/cmsweb/dqmsquare_mirror #imagetag
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "while true; do sleep 30; done;" ]
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "400m"
+          limits:
+            memory: "4Gi"
+            cpu: "800m"
+        volumeMounts:
+          - mountPath: /cephfs/testbed
+            name: dqmsquare-mirror-pvc-testbed
+          - name: robot-secrets
+            mountPath: /etc/robots
+      volumes:
+      - name: dqmsquare-mirror-pvc-testbed
+        persistentVolumeClaim:
+          claimName: dqmsquare-mirror-pvc-testbed
+          readOnly: false
+      - name: robot-secrets
+        secret:
+          secretName: robot-secrets
+

@@ -2,7 +2,7 @@
 
 import dqmsquare_cfg
 
-import time, base64
+import time, base64, os, sys
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,6 +16,18 @@ if __name__ == '__main__':
   NAME = "dqmsquare_robber_oldruns.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["ROBBER_OLDRUNS_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["ROBBER_DEBUG"])
+  is_k8 = bool( cfg["ROBBER_K8"] )
+
+  selenium_secret="changeme"
+  if is_k8:
+    try : 
+      temp = os.environ['DQM_PASSWORD']
+      temp = temp.encode()
+      temp = base64.b64encode( temp )
+      selenium_secret = temp.decode("utf-8")
+    except Exception as error_log:
+      log.warning( "dqm_2_grab(): can't load DQM_PASSWORD cookie" )
+      log.warning( error_log )
 
   log.info("begin ...")
   error_logs = dqmsquare_cfg.ErrorLogs()
@@ -32,7 +44,7 @@ if __name__ == '__main__':
     exit()
 
   def save_site( content, path ):
-    file = open( path, "w" )
+    file = open( path, "w", encoding="utf8" )
     file.write( content )
     file.close()
 
@@ -48,7 +60,15 @@ if __name__ == '__main__':
     options.add_argument('--disable-application-cache')
     options.add_argument('--disable-gpu')
     options.add_argument("--disable-dev-shm-usage")
+    if str(cfg["ROBBER_FIREFOX_PATH"]) : options.binary_location = str(cfg["ROBBER_FIREFOX_PATH"])
     driver = None
+
+    ### login cmsweb dqm
+    def cmsweb_dqm_login( driver ):
+      if not is_k8 : return
+      driver.get( str(cfg["ROBBER_K8_LOGIN_PAGE"]) );
+      driver.add_cookie({"name": "selenium-secret-secret", "value": selenium_secret})
+      time.sleep( int(cfg["SLEEP_TIME"]) )
 
     ### setup browser driver
     def restart_browser():
@@ -64,7 +84,13 @@ if __name__ == '__main__':
             log.warning( error_log )
 
       log.info("restart_browser(): setup Selenium WebDriver ...")
-      driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path='./log/geckodriver_oldruns.log')
+      if str(cfg["ROBBER_FIREFOX_PROFILE_PATH"]):
+        fp = webdriver.FirefoxProfile( str(cfg["ROBBER_FIREFOX_PROFILE_PATH"]) )
+        driver = webdriver.Firefox(fp, options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path=cfg['ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH'])
+      else :
+        driver = webdriver.Firefox(options=options, executable_path=cfg["ROBBER_GECKODRIVER_PATH"], log_path=cfg['ROBBER_OLDRUNS_GECKODRIVER_LOG_PATH'])
+
+      if is_k8 : cmsweb_dqm_login( driver )
 
       ### open new tabs
       log.info("restart_browser(): open tabs ...")
@@ -121,14 +147,15 @@ if __name__ == '__main__':
               break
 
       log.debug("dqm_2_grab(): return data ... ")
-      return driver.page_source.encode('utf-8')
+      return driver.page_source
 
     ### get old runs time-to-time
     def get_old_runs(driver, opath, link, parser_info={}):
       if not bool(cfg["ROBBER_GRAB_OLDRUNS"]) : return
-      driver.switch_to_window( driver.window_handles[-1] )
       log.debug( "get_old_runs(): load link %s ..." % link )
       driver.get( link )
+      time.sleep( int(cfg["SLEEP_TIME"]) )
+      if is_k8: driver.get( link ) # second time for k8
       time.sleep( int(cfg["SLEEP_TIME"]) )
 
       runs_done = []
@@ -171,7 +198,7 @@ if __name__ == '__main__':
           try:
             for key, item_dic in parser_info.items():
               if run_link.text not in key : continue # same run number in the names of tmp robber and parser names
-              if item_dic.has_key("States G") :
+              if "States G" in item_dic :
                 n_ongoing_runs = int( item_dic["States G"] )
           except Exception as error_log:
             if bool(cfg["ROBBER_DEBUG"]) :

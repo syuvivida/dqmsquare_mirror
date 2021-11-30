@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+  	  .title {
+        display: block;
+        padding-left: 16px;
+        padding-top: 7px;
+        padding-right: 16px;
+        padding-bottom: 6px;
+        text-decoration: none;
+        font-size: 18px;
+        background-color: #2471a3;
+        color:  #d4e6f1 ;
+        font-weight: bold;
+      }
+
+      .techtext {
+        background-color:gainsboro;  
+      }
+
+      .btn {
+        font-weight:bold;
+      }
+
+      .column {
+        float: left;
+        width: 15%;
+      }
+
+      .row:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+
+  </style>
+</head>
+<body onload="">
+  <div class="title">
+  DQM <sup>2</sup> &#x25A0; Control Room &#x25A0;  <a href="/dqm/dqm-square-k8/">Mirror</a>  &#x25A0;  <a href="/dqm/dqm-square-k8/cr/logout">Logout</a> 
+  </div>
+<br>
+  <div>
+    <strong>Output:</strong>
+    <div id="console" class="techtext"> </div>
+
+    <button class="btn" id="btn_get_dqm_machines" onclick="cr_get_dqm_machines()">Print DQM machines</button>
+    <button class="btn" id="btn_get_hltd_version" onclick="cr_get_hltd_version()">Print HLTD versions</button>
+
+    <div class="row">
+      <div class="column"> <div id="hltd_production"> </div></div>
+      <div class="column"> <div id="hltd_playback"> </div></div>
+      <div class="column"> <div id="playback_run"> </div> 
+        Select playback run: <select id="run_number"></select>  
+        Select run class:    <select id="run_class"></select><br>
+        Set LS number:       <input type="number" id="LS_number" name="LS_number" min="10" max="10000" size="7"><br>
+        <button class="btn" id="btn_start_playback_run" onclick="cr_start_playback_run()">Start new run</button>
+      </div> 
+    </div>
+    <p style="clear:both;margin-bottom:25px"></p>
+  </div>
+
+  <script>
+    var MAX_CONSOLE_SIZE = 40
+
+    var console_content = []; 
+    for (let i=0; i<MAX_CONSOLE_SIZE; ++i) console_content.push(". . .\n");
+
+    function push_to_console( string ){
+      const lines = string.split(/\r?\n/);
+      console_content = console_content.concat( lines );
+      console_content.push(" . . . ")
+      console_content = console_content.slice(-MAX_CONSOLE_SIZE, -1)
+      var content = "";
+      console_content.forEach(function(item, index, array) {
+        content += item + "<br>";
+      });
+      console.log( content )
+      document.getElementById("console").innerHTML = content;
+    }
+    push_to_console(".");
+
+    // definition of default buttons
+    function set_cr_button(xhttp, element_name){
+      xhttp.onreadystatechange = function() {
+        if( this.readyState == XMLHttpRequest.DONE ){
+          if (this.status == 200) {
+            push_to_console( xhttp.responseText );
+          } else {
+            push_to_console( "Error, XMLHttpRequest status="+this.status );
+          }
+          var element = document.getElementById( element_name );
+          element.style.color="";
+        }
+      }
+    }
+
+    function set_cr_logs_button(xhttp, element_name){
+      xhttp.onreadystatechange = function() {
+        if( this.readyState == XMLHttpRequest.DONE ){
+          if (this.status == 200) {
+            push_to_console( xhttp.responseText );
+            window.open( xhttp.responseText );
+            window.open( xhttp.responseText );
+          } else {
+            push_to_console( "Error, XMLHttpRequest status="+this.status );
+          }
+          var element = document.getElementById( element_name );
+          element.style.color="";
+        }
+      }
+    }
+
+    function process_cr_button(xhttp, url, element_name, text_on, text_off, out_id){
+      var element = document.getElementById( element_name );
+      if( element.style.color == "" ){
+        push_to_console( "Process ... " + url );
+        xhttp.open("GET", url, true);
+        xhttp.send();
+        element.style.color="red";
+      } else if( element.style.color == "red" ){
+        push_to_console( "Abort/Reset ... " + url);
+        xhttp.abort();
+        element.style.color="";
+      }
+    }
+
+    function set_and_process_cr_button(bname, url){
+      var xhttp = new XMLHttpRequest();
+      set_cr_button(xhttp, bname)
+      process_cr_button(xhttp, url, bname);
+    }
+
+    var xhttp_hltd_version = new XMLHttpRequest();
+    set_cr_button(xhttp_hltd_version, "btn_get_hltd_version")
+    function cr_get_hltd_version(){
+      process_cr_button(xhttp_hltd_version, "/cr/get_hltd_versions", "btn_get_hltd_version");
+    }
+
+    var xhttp_dqm_machines = new XMLHttpRequest();
+    set_cr_button(xhttp_dqm_machines, "btn_get_dqm_machines")
+    function cr_get_dqm_machines(){
+      process_cr_button(xhttp_dqm_machines, "/cr/get_dqm_machines", "btn_get_dqm_machines");
+    }
+
+    function cr_restart_hltd(machine){
+      set_and_process_cr_button("btn hltd restart " + machine, "/cr/restart_hltd?machine");
+    }
+
+    function cr_get_hltd_logs(machine){
+      set_and_process_cr_button("btn hltd logs " + machine, "/cr/get_hltd_logs?machine");
+    }
+
+    function cr_restart_fff(machine){
+      set_and_process_cr_button("btn fff restart " + machine, "/cr/restart_fff?machine");
+    }
+
+    function cr_get_fff_logs(machine){
+      set_and_process_cr_button("btn fff logs " + machine, "/cr/get_fff_logs?machine");
+    }
+
+    // Get DQM machine list and set some buttons per dqm machine list
+    var dqm_machines_pl=[], dqm_machines_pr=[]
+    // playback machines
+    var xhttp_def_pl = new XMLHttpRequest();
+    xhttp_def_pl.open("GET", "/cr/get_dqm_machines?playback", true);
+    xhttp_def_pl.send();
+    xhttp_def_pl.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        dqm_machines_pl = eval( xhttp_def_pl.responseText );
+        var text = "<strong>Playback machines:</strong> <br>" 
+        // get logs hltd
+        text += "hltd logs: <br>" 
+        dqm_machines_pl.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn hltd logs " + item + "\" onclick=\"cr_get_hltd_logs(\'" + item + "\')\">Get HLTD logs from " + item + "</button>";
+        })
+        // restart hltd
+        text += "<br> hltd restart: <br>" 
+        dqm_machines_pl.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn hltd restart " + item + "\" onclick=\"cr_restart_hltd(\'" + item + "\')\">Restart HLTD at " + item + "</button>";
+        })
+        // get fff hltd
+        text += "<br> fff logs: <br>" 
+        dqm_machines_pl.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn fff logs " + item + "\" onclick=\"cr_get_fff_logs(\'" + item + "\')\">Get FFF logs from " + item + "</button>";
+        })
+        // restart fff
+        text += "<br> fff restart: <br>" 
+        dqm_machines_pl.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn fff restart " + item + "\" onclick=\"cr_restart_fff(\'" + item + "\')\">Restart FFF at " + item + "</button>";
+        })
+
+        document.getElementById("hltd_playback").innerHTML = text;
+      }
+    }
+    // production machines
+    var xhttp_def_pr = new XMLHttpRequest();
+    xhttp_def_pr.open("GET", "/cr/get_dqm_machines?production", true);
+    xhttp_def_pr.send();
+    xhttp_def_pr.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        dqm_machines_pr = eval( xhttp_def_pr.responseText );
+        var text = "<strong>Production machines:</strong> <br>" 
+        // get logs
+        text += "hltd logs: <br>" 
+        dqm_machines_pl.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn hltd logs " + item + "\" onclick=\"cr_get_hltd_logs(\'" + item + "\')\">Get HLTD logs from " + item + "</button>";
+        })
+        // restart hltd
+        text += "<br> hltd restart: <br>" 
+        dqm_machines_pr.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn hltd restart " + item + "\" onclick=\"cr_restart_hltd(\'" + item + "\')\">Restart HLTD at " + item + "</button>";
+        })
+        // get fff hltd
+        text += "<br> fff logs: <br>" 
+        dqm_machines_pl.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn fff logs " + item + "\" onclick=\"cr_get_fff_logs(\'" + item + "\')\">Get FFF logs from " + item + "</button>";
+        })
+        // restart fff
+        text += "<br> fff restart: <br>" 
+        dqm_machines_pl.forEach(function(item, index, array) {
+          text += "<button class=\"btn\" id=\"btn fff restart " + item + "\" onclick=\"cr_restart_fff(\'" + item + "\')\">Restart FFF at " + item + "</button>";
+        })
+
+        document.getElementById("hltd_production").innerHTML = text;
+      }
+    }
+
+    // choice run number, run_key, number_of_ls
+    function removeOptions(selectElement) {
+       var i, L = selectElement.options.length - 1;
+       for(i = L; i >= 0; i--) {
+          selectElement.remove(i);
+       }
+    }
+
+    function addOptions(selectElement, options) {
+      for(var i = 0; i < options.length; i++) {
+          var opt = options[i];
+          var el = document.createElement("option");
+          el.textContent = opt;
+          el.value = opt;
+          selectElement.appendChild(el);
+      }
+    }
+
+    var run_numbers_dropbox = document.getElementById("run_number");
+    var run_class_dropbox = document.getElementById("run_class");
+    var xhttp_def_get_playback_config = new XMLHttpRequest();
+    xhttp_def_get_playback_config.open("GET", "/cr/get_playback_config", true);
+    xhttp_def_get_playback_config.send();
+    xhttp_def_get_playback_config.onreadystatechange = function() {
+      var run_numbers = eval( xhttp_def_get_playback_config.responseText );
+      removeOptions( run_numbers_dropbox );
+      addOptions(run_numbers_dropbox, run_numbers);
+
+      var run_classes = eval( xhttp_def_get_playback_config.responseText );
+      removeOptions( run_class_dropbox );
+      addOptions(run_class_dropbox, run_classes);
+    }
+
+
+    var xhttp_start_playback_run = new XMLHttpRequest();
+    set_cr_button(xhttp_start_playback_run, "btn_start_playback_run")
+    function cr_start_playback_run(){
+      process_cr_button(xhttp_start_playback_run, "/cr/start_playback_run", "btn_start_playback_run");
+    }
+
+  </script>
+</body>
+</html>
+
+
+
