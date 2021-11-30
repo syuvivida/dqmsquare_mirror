@@ -6,6 +6,8 @@ sudo mkdir -p /cephfs/testbed/dqmsquare_mirror/tmp/
 sudo mkdir -p /cephfs/testbed/dqmsquare_mirror/log/
 sudo find /cephfs/testbed/dqmsquare_mirror -type d -exec chmod 777 {} \;
 
+python3 dqmsquare_cfg.py k8
+
 if [ $service = "robber" ] ; then
   sudo ./dqmsquare_cert.sh
   python3 dqmsquare_robber.py

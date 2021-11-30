@@ -37,7 +37,6 @@ RUN mkdir -p /cephfs/testbed/dqmsquare_mirror/
 ADD . /dqmsquare_mirror
 WORKDIR dqmsquare_mirror
 RUN python3 -m pip install -r requirements
-RUN python3 dqmsquare_cfg.py k8
 
 # Add bottle
 RUN set -x \

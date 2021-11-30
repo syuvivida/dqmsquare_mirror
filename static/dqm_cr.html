@@ -164,7 +164,7 @@
     var dqm_machines_pl=[], dqm_machines_pr=[]
     // playback machines
     var xhttp_def_pl = new XMLHttpRequest();
-    xhttp_def_pl.open("GET", "/cr/get_dqm_machines?playback", true);
+    xhttp_def_pl.open("GET", "cr/exe?what=get_dqm_machines&type=playback", true);
     xhttp_def_pl.send();
     xhttp_def_pl.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
@@ -196,7 +196,7 @@
     }
     // production machines
     var xhttp_def_pr = new XMLHttpRequest();
-    xhttp_def_pr.open("GET", "/cr/get_dqm_machines?production", true);
+    xhttp_def_pr.open("GET", "/cr/exe?what=get_dqm_machines&type=production", true);
     xhttp_def_pr.send();
     xhttp_def_pr.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {

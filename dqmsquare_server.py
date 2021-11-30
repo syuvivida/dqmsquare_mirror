@@ -5,6 +5,7 @@ import dqmsquare_cfg
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'bottle'))
 
+import requests
 import bottle
 from bottle import template, static_file, error
 from bottle import route, get, post, request
@@ -173,54 +174,38 @@ if __name__ == '__main__':
             </form>
         '''
 
-    # DQM & FFF
-    @route('/cr/get_dqm_machines')
-    @route('/dqm/dqm-square-k8/cr/get_dqm_machines')
-    @check_auth
-    def cr_get_dqm_machines():
-      machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
-      return machines
+    # DQM & FFF & HLTD
+    cr_path = cfg["SERVER_FFF_CR_PATH"]
+    cert_path = cfg["SERVER_GRID_CERTIFICATE_PATH"]
+    @route('/cr/exe')
+    @route('/dqm/dqm-square-k8/cr/exe') # http://0.0.0.0:8887/dqm/dqm-square-k8/cr/exe?what=get_dqm_machines&
+    #@check_auth
+    def cr_exe():
+      log.debug( bottle.request.urlparts )
+      what = bottle.request.query.what
+      print(what, what == "get_dqm_machines")
 
-    @route('/cr/get_playback_config')
-    @route('/dqm/dqm-square-k8/cr/get_playback_config')
-    @check_auth
-    def cr_get_dqm_machines():
-      machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
-      return machines
+      if what in ["get_dqm_machines", "get_playback_config"] :
+        url = cr_path + "/cr/exe?" + bottle.request.urlparts.query
+        try:
+          r = requests.get(url, cert=cert_path, verify=False)
+          return r.content
+        except:
+          return "Access Error"
 
-    @route('/cr/start_playback_run')
-    @route('/dqm/dqm-square-k8/cr/start_playback_run')
-    @check_auth
-    def cr_get_dqm_machines():
-      machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
-      return machines
+      
+        
 
-    # HLTD
-    @route('/cr/get_hltd_versions')
-    @route('/dqm/dqm-square-k8/cr/get_hltd_versions')
-    @check_auth
-    def cr_get_hltd_versions():
-      import time
-      time.sleep( 5 )
-      print( request.headers.keys() )
-      if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return 'This is an AJAX request'
-      else:
-        return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
+      # start_playback_run
+      # get_fff_logs
+      # restart_fff
 
-    @route('/cr/restart_hltd')
-    @route('/dqm/dqm-square-k8/cr/restart_hltd')
-    @check_auth
-    def cr_restart_hltd():
-      return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
-
-    @route('/cr/get_hltd_logs')
-    @route('/dqm/dqm-square-k8/cr/get_hltd_logs')
-    @check_auth
-    def cr_get_hltd_logs():
-      import time
-      time.sleep( 5 )
-      return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
+      # get_hltd_versions
+      # restart_hltd
+      # get_hltd_logs
+      
+      dummy = '["d1", "d2"]'
+      return dummy
 
   log.info("make_dqm_mirrow_page() call ... ")
   make_dqm_mirrow_page( cfg )

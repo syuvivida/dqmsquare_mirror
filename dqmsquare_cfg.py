@@ -30,6 +30,8 @@ cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/server.log"
 cfg["SERVER_DATA_PATH"]               = "."
+cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
+cfg["SERVER_GRID_CERTIFICATE_PATH"]   = ["/home/pmandrik/CERT_TEST/np/usercert.pem", "/home/pmandrik/CERT_TEST/np/userkey.pem"]
 
 cfg["PARSER_DEBUG"]  = False
 cfg["PARSER_RANDOM"] = False
@@ -61,12 +63,14 @@ cfg["ROBBER_K8_LOGIN_PAGE"] = ""
 cfg["ROBBER_FIREFOX_PATH"] = ""
 cfg["ROBBER_FIREFOX_PROFILE_PATH"] = ""
 
-def set_k8_options():
+def set_k8_options(testbed = False):
   global cfg
 
   mount_path = "/cephfs/testbed/dqmsquare_mirror/"
+  cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
   cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = mount_path[1:] + cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] 
   cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = mount_path[1:] + cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]
+  cfg["SERVER_GRID_CERTIFICATE_PATH"]   = ['/etc/robots/robotcert.pem', '/etc/robots/robotkey.pem']
   cfg["TMP_FOLDER_TO_CLEAN"] = mount_path + cfg["TMP_FOLDER_TO_CLEAN"]
   cfg["SERVER_PORT"] = 8084
   cfg["SERVER_DATA_PATH"] = mount_path
@@ -87,6 +91,11 @@ def set_k8_options():
   cfg["ROBBER_GECKODRIVER_PATH"] = "/usr/bin/geckodriver"
   cfg["ROBBER_FIREFOX_PROFILE_PATH"] = "/firefox_profile_path"
   cfg["ROBBER_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+
+  if not testbed : 
+    cfg["SERVER_FFF_CR_PATH"]   = "https://cmsweb.cern.ch/dqm/dqm-square-origin/"
+    cfg["ROBBER_K8_LOGIN_PAGE"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/login"
+    cfg["ROBBER_TARGET_SITES"]  = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):
@@ -118,7 +127,9 @@ def load_cfg( path, section=cfg_SECTION ):
 if __name__ == '__main__' :
   import sys
   if len(sys.argv) > 1 and sys.argv[1] == "k8":
-    set_k8_options()
+    set_k8_options( testbed = False )
+  if len(sys.argv) > 1 and sys.argv[1] == "k8_testbed":
+    set_k8_options( testbed = True )
 
   config = ConfigParser.RawConfigParser()
   config.add_section('OPTIONS')
