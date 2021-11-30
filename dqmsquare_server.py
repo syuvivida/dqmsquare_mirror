@@ -6,7 +6,8 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'bottle'))
 
 import bottle
-from bottle import route, template, request, static_file, error
+from bottle import template, static_file, error
+from bottle import route, get, post, request
 from bottle import default_app
 
 import logging
@@ -99,27 +100,89 @@ if __name__ == '__main__':
       return content
 
     ### CR ###
+    cr_username = "username"
+    cr_password = "password"
+    cookie_secret = "secret"
+    def check_login(username, password, cookie=False):
+      print(username == cr_username, password == cr_password)
+      if username != cr_username : return False
+      if cookie : return True
+      if password != cr_password : return False
+      return True
+  
+    @post('/cr/login')
+    def do_login():
+      username = request.forms.get('username')
+      password = request.forms.get('password')
+      print( check_login(username, password) ) 
+      if check_login(username, password):
+        bottle.response.set_cookie( "dqmsquare-mirror-cr-account", username, secret=cookie_secret )
+        bottle.redirect("/cr")
+        return "<p>Your login information was correct.</p>"
+      else:
+        return "<p>Login failed.</p>"
+
+    def check_auth(fn):
+      def check_auth_(**kwargs):
+        username = request.get_cookie( "dqmsquare-mirror-cr-account", secret=cookie_secret )
+        if not check_login( username, None, True ) :
+          bottle.redirect("/cr/login")
+        else : return fn(**kwargs)
+      return check_auth_
+
     @route('/cr')
+    @check_auth
     def get_static(name='Stranger'):
       return static_file("dqm_cr.html", root='./static/')
 
+    @get('/cr/login')
+    def login():
+        return '''
+            <style>
+	          .title {
+                padding-left: 16px;
+                padding-top: 7px;
+                padding-right: 16px;
+                padding-bottom: 6px;
+                text-decoration: none;
+                font-size: 18px;
+                background-color: #2471a3;
+                color:  #d4e6f1 ;
+                font-weight: bold;
+              }
+            </style>
+            <div class="title">
+              DQM <sup>2</sup> &#x25A0; Welcom!
+            </div> <br>
+            <form action="/cr/login" method="post">
+                Username: <input name="username" type="text" />
+                Password: <input name="password" type="password" />
+                <input value="Login" type="submit" />
+            </form>
+        '''
+
+    # DQM & FFF
     @route('/cr/get_dqm_machines')
+    @check_auth
     def cr_get_dqm_machines():
       machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
       return machines
 
     @route('/cr/get_playback_config')
+    @check_auth
     def cr_get_dqm_machines():
       machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
       return machines
 
     @route('/cr/start_playback_run')
+    @check_auth
     def cr_get_dqm_machines():
       machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
       return machines
 
     # HLTD
     @route('/cr/get_hltd_versions')
+    @check_auth
     def cr_get_hltd_versions():
       import time
       time.sleep( 5 )
@@ -130,10 +193,12 @@ if __name__ == '__main__':
         return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
 
     @route('/cr/restart_hltd')
+    @check_auth
     def cr_restart_hltd():
       return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
 
     @route('/cr/get_hltd_logs')
+    @check_auth
     def cr_get_hltd_logs():
       import time
       time.sleep( 5 )
