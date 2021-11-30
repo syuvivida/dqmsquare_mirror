@@ -6,13 +6,11 @@
     .btn {
       border: none;
       outline: none;
-      padding: 4px 16px;
+      padding: 4px 20px;
       background-color:  #5dade2 ;
       color: #f2f2f2;
       cursor: pointer;
       font-size: 18px;
-      float: left;
-      border: 4px solid    #2471a3   ;
       color:  #d4e6f1 ;
       font-weight: bold;
     }
@@ -55,9 +53,6 @@
     }
 
 	  .title {
-        float: left;
-        display: block;
-        text-align: center;
         padding-left: 16px;
         padding-top: 7px;
         padding-right: 16px;
@@ -82,12 +77,10 @@
 <body onload="init_load_production()">
 
   <div class="title">
-  DQM <sup>2</sup> &#x25A0; Mirror &#x25A0; <a href="/dqm/dqm-square-k8/cr/">Control Room</a> 
-  </div>
-
-  <div>
+  DQM <sup>2</sup> &#x25A0; Mirror
     <button class="btn" id="btn_production" onclick="init_load_production()">production</button>
     <button class="btn" id="btn_playback" onclick="init_load_playback()">playback</button>
+    &#x25A0; <a href="/dqm/dqm-square-k8/cr/">Control Room</a> 
   </div>
 
   <p style="clear:both;margin-bottom:25px"></p>
@@ -117,16 +110,22 @@
       dynamicPart.innerHTML = "..."
     }
 
+    function handleErrors(response) {
+        if (!response.ok) {
+          return "Can't fetch url ... ";
+        };
+        return response.text();
+    };
+
     async function load_production() {
-      dynamicPart.innerHTML = await(await fetch(url_production)).text();
+      dynamicPart.innerHTML = await(await fetch(url_production).then(handleErrors));
       window.timer_load_production = setTimeout(load_production, reload_time);
-    }
+    };
 
     async function load_playback() {
-      dynamicPart.innerHTML = await(await fetch(url_playback)).text();
+      dynamicPart.innerHTML = await(await fetch(url_playback).then(handleErrors));
       window.timer_load_playback = setTimeout(load_playback, reload_time);
-    }
-
+    };
 
     function init_load_production(){
       let do_load = window.timer_load_production;

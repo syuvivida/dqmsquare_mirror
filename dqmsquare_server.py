@@ -54,14 +54,17 @@ if __name__ == '__main__':
     ofile.write( content )
     ofile.close()
 
+  ### DQM^2 Mirror ###
+  @route('')
+  @route('/')
+  @route('/dqm/dqm-square-k8')
+  @route('/dqm/dqm-square-k8/')
+  def greet(name='Stranger'):
+    return static_file("dqm_mirror.html", root='./static/')
+
   if cfg["SERVER_K8"] :
     ### K8
     SERVER_DATA_PATH = cfg["SERVER_DATA_PATH"]
-    @route('/dqm/dqm-square-k8')
-    @route('/dqm/dqm-square-k8/')
-    def greet(name='Stranger'):
-      return static_file("dqm_mirror.html", root='./static/')
-
     @route('/dqm/dqm-square-k8/static/<filename>')
     def get_static(filename):
       return static_file(filename, root='./static/')
@@ -78,11 +81,6 @@ if __name__ == '__main__':
       content = static_file(filename, root=SERVER_DATA_PATH+'log/')
       return content
   else :
-    ### DQM^2 Mirror ###
-    @route('/')
-    def greet(name='Stranger'):
-      return static_file("dqm_mirror.html", root='./static/')
-
     @route('/static/<filename>')
     def get_static(filename):
       return static_file(filename, root='./static/')
@@ -99,6 +97,7 @@ if __name__ == '__main__':
       content = static_file(filename, root='./log/')
       return content
 
+  if True:
     ### CR ###
     cr_username = "username"
     cr_password = "password"
@@ -111,31 +110,44 @@ if __name__ == '__main__':
       return True
   
     @post('/cr/login')
+    @post('/dqm/dqm-square-k8/cr/login')
     def do_login():
       username = request.forms.get('username')
       password = request.forms.get('password')
       print( check_login(username, password) ) 
       if check_login(username, password):
-        bottle.response.set_cookie( "dqmsquare-mirror-cr-account", username, secret=cookie_secret )
-        bottle.redirect("/cr")
+        bottle.response.set_cookie( "dqmsquare-mirror-cr-account", username, secret=cookie_secret, path="/", httponly=True )
+        bottle.redirect("/dqm/dqm-square-k8/cr")
         return "<p>Your login information was correct.</p>"
       else:
         return "<p>Login failed.</p>"
 
+    @route('/cr/logout')
+    @route('/dqm/dqm-square-k8/cr/logout')
+    def do_logout():
+      bottle.response.set_cookie( "dqmsquare-mirror-cr-account", "random", secret=cookie_secret, path="/", httponly=True )
+      bottle.redirect("/")
+      return "<p>Your login information cleared.</p>"
+
     def check_auth(fn):
       def check_auth_(**kwargs):
         username = request.get_cookie( "dqmsquare-mirror-cr-account", secret=cookie_secret )
+        print( username )
         if not check_login( username, None, True ) :
           bottle.redirect("/cr/login")
         else : return fn(**kwargs)
       return check_auth_
 
     @route('/cr')
+    @route('/cr/')
+    @route('/dqm/dqm-square-k8/cr')
+    @route('/dqm/dqm-square-k8/cr/')
     @check_auth
     def get_static(name='Stranger'):
       return static_file("dqm_cr.html", root='./static/')
 
     @get('/cr/login')
+    @get('/dqm/dqm-square-k8/cr/login')
     def login():
         return '''
             <style>
@@ -163,18 +175,21 @@ if __name__ == '__main__':
 
     # DQM & FFF
     @route('/cr/get_dqm_machines')
+    @route('/dqm/dqm-square-k8/cr/get_dqm_machines')
     @check_auth
     def cr_get_dqm_machines():
       machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
       return machines
 
     @route('/cr/get_playback_config')
+    @route('/dqm/dqm-square-k8/cr/get_playback_config')
     @check_auth
     def cr_get_dqm_machines():
       machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
       return machines
 
     @route('/cr/start_playback_run')
+    @route('/dqm/dqm-square-k8/cr/start_playback_run')
     @check_auth
     def cr_get_dqm_machines():
       machines = '["ws://bu-...-01", "ws://fu-...-01", "ws://fu-...-02", "ws://fu-...-03", "ws://fu-...-04"]'
@@ -182,6 +197,7 @@ if __name__ == '__main__':
 
     # HLTD
     @route('/cr/get_hltd_versions')
+    @route('/dqm/dqm-square-k8/cr/get_hltd_versions')
     @check_auth
     def cr_get_hltd_versions():
       import time
@@ -193,11 +209,13 @@ if __name__ == '__main__':
         return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
 
     @route('/cr/restart_hltd')
+    @route('/dqm/dqm-square-k8/cr/restart_hltd')
     @check_auth
     def cr_restart_hltd():
       return 'This is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request\nThis is a normal request'
 
     @route('/cr/get_hltd_logs')
+    @route('/dqm/dqm-square-k8/cr/get_hltd_logs')
     @check_auth
     def cr_get_hltd_logs():
       import time
