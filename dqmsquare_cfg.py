@@ -29,9 +29,11 @@ cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = "tmp/content_parser_production"
 cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/server.log"
-cfg["SERVER_DATA_PATH"]               = "."
+cfg["SERVER_DATA_PATH"]               = ""
 cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
-cfg["SERVER_GRID_CERTIFICATE_PATH"]   = ["/home/pmandrik/CERT_TEST/np/usercert.pem", "/home/pmandrik/CERT_TEST/np/userkey.pem"]
+cfg["SERVER_GRID_CERT_PATH"]          = "/home/pmandrik/CERT_TEST/np/usercert.pem"
+cfg["SERVER_GRID_KEY_PATH"]           = "/home/pmandrik/CERT_TEST/np/userkey.pem"
+cfg["SERVER_SIMULATOR_RUN_KEYS"]      = "cosmic_run,pp_run,commisioning_run"
 
 cfg["PARSER_DEBUG"]  = False
 cfg["PARSER_RANDOM"] = False
@@ -70,7 +72,8 @@ def set_k8_options(testbed = False):
   cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
   cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = mount_path[1:] + cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] 
   cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = mount_path[1:] + cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]
-  cfg["SERVER_GRID_CERTIFICATE_PATH"]   = ['/etc/robots/robotcert.pem', '/etc/robots/robotkey.pem']
+  cfg["SERVER_GRID_CERT_PATH"]   = '/etc/robots/robotcert.pem'
+  cfg["SERVER_GRID_KEY_PATH"]    = '/etc/robots/robotkey.pem'
   cfg["TMP_FOLDER_TO_CLEAN"] = mount_path + cfg["TMP_FOLDER_TO_CLEAN"]
   cfg["SERVER_PORT"] = 8084
   cfg["SERVER_DATA_PATH"] = mount_path
@@ -248,6 +251,13 @@ def get_parser_info( path_to_parser_output_page ):
   return info_dic
 
 ### Other
+def dump_tmp_file( data, path, prefix ):
+  import tempfile
+  f = tempfile.NamedTemporaryFile(mode='w', prefix=prefix, dir=path, delete=False)
+  f.write( data )
+  f.close()
+  return os.path.basename( f.name )
+
 def delete_file( path_to_file, log ):
   try:
     if not os.path.exists( path_to_file ) : return False

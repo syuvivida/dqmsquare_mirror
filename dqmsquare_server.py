@@ -12,6 +12,7 @@ from bottle import route, get, post, request
 from bottle import default_app
 
 import logging
+import json
 log = logging.getLogger(__name__)
 
 ### wrapper for logs
@@ -36,6 +37,7 @@ def start_server( cfg ):
 if __name__ == '__main__':
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["SERVER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], True)
+  SERVER_DATA_PATH = cfg["SERVER_DATA_PATH"]
 
   def make_dqm_mirrow_page(cfg):
     ifile = open("static/dqm_mirror_template.html","r")
@@ -55,6 +57,19 @@ if __name__ == '__main__':
     ofile.write( content )
     ofile.close()
 
+  def enable_cors(fn):
+    from bottle import request, response
+    def _enable_cors(*args, **kwargs):
+      # set CORS headers
+      response.headers['Access-Control-Allow-Origin']  = '*'
+      response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+      response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+      response.headers['Access-Control-Allow-Credentials'] = 'true'
+      if bottle.request.method != 'OPTIONS':
+        # actual request; reply with the actual response
+        return fn(*args, **kwargs)
+      return _enable_cors
+
   ### DQM^2 Mirror ###
   @route('')
   @route('/')
@@ -65,7 +80,6 @@ if __name__ == '__main__':
 
   if cfg["SERVER_K8"] :
     ### K8
-    SERVER_DATA_PATH = cfg["SERVER_DATA_PATH"]
     @route('/dqm/dqm-square-k8/static/<filename>')
     def get_static(filename):
       return static_file(filename, root='./static/')
@@ -176,7 +190,8 @@ if __name__ == '__main__':
 
     # DQM & FFF & HLTD
     cr_path = cfg["SERVER_FFF_CR_PATH"]
-    cert_path = cfg["SERVER_GRID_CERTIFICATE_PATH"]
+    cert_path = [cfg["SERVER_GRID_CERT_PATH"], cfg["SERVER_GRID_KEY_PATH"]]
+    cookies = {'selenium-secret': 'changeme'}
     @route('/cr/exe')
     @route('/dqm/dqm-square-k8/cr/exe') # http://0.0.0.0:8887/dqm/dqm-square-k8/cr/exe?what=get_dqm_machines&
     #@check_auth
@@ -185,27 +200,47 @@ if __name__ == '__main__':
       what = bottle.request.query.what
       print(what, what == "get_dqm_machines")
 
-      if what in ["get_dqm_machines", "get_playback_config"] :
+      if what == "get_simulator_run_keys" :
+        return str(cfg["SERVER_SIMULATOR_RUN_KEYS"].split(","))
+
+      if what == "get_simulator_runs" :
+        return str(["123", "456", "789"])
+
+      if what == "get_simulator_config" :
+        return json.dumps( {"source" : "/asd/ads/asdasd/asddasas/asddasdas/789", "number_of_ls" : 501, "run_key": "pp_run"} )
+
+      if what in ["get_dqm_machines", "get_simulator_config", "get_hltd_versions", "restart_hltd", "restart_fff", "get_simulator_runs", "start_playback_run"] :
         url = cr_path + "/cr/exe?" + bottle.request.urlparts.query
         try:
-          r = requests.get(url, cert=cert_path, verify=False)
+          print( cert_path )
+          r = requests.get(url, cert=cert_path, verify=False, cookies=cookies)
+          print( r.content )
+          print( r.json() )
           return r.content
         except:
           return "Access Error"
 
-      
-        
+      if what in ["get_fff_logs", "get_hltd_logs"]:
+        url = cr_path + "/cr/exe?" + bottle.request.urlparts.query
+        r = requests.get(url, cert=cert_path, verify=False, cookies=cookies)
+        data  = ["No data from fff available ..."]
+
+        try:
+          data  = json.loads( r.json() )
+          data = ["123", "456", "789"]
+        except: pass
+
+        fnames = []
+        for item in data:
+          fname = dqmsquare_cfg.dump_tmp_file( item, SERVER_DATA_PATH+'tmp/', what )
+          fnames += [ SERVER_DATA_PATH+'/tmp/' + fname ]
+        return str(fnames)
+
+      if what == "start_playback_run" :
+        pass
 
       # start_playback_run
-      # get_fff_logs
-      # restart_fff
-
-      # get_hltd_versions
-      # restart_hltd
-      # get_hltd_logs
-      
-      dummy = '["d1", "d2"]'
-      return dummy
+      return "No actions defined for that request"
 
   log.info("make_dqm_mirrow_page() call ... ")
   make_dqm_mirrow_page( cfg )
