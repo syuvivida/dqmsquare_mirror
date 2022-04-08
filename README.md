@@ -59,7 +59,7 @@ To store log and tmp we mount CephFS. Claim for CephFS is defined in k8_claim_te
 Also, they are requested Docker image to be defined to use not root user. Docker source image is python:3.9, cmsweb images not work well with firefox & geckodriver.
 In general, source image and selenium, firefox, geckodriver versions are carefully selected to be able to work together with available code.
 
-1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2 dqmsquare_mirror  
+1. docker build -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0 dqmsquare_mirror  
    For testing locally:
    docker run --rm -h `hostname -f` -v local_config_with_certificates:/firefox_profile_path -i -t registry.cern.ch/cmsweb/dqmsquare_mirror:v1.1.0_pre2  
 2. docker login registry.cern.ch   
@@ -75,7 +75,7 @@ For testbed cmsweb k8 cluster:
 ```
 to login into a pod :   
 ```
-  kubectl exec -it dqm-square-mirror-robber-6cdfd96988-2v527 bash -n dqm 
+  kubectl exec -it dqm-square-mirror-robber-74d5458fb-924j2 bash -n dqm 
 ```
 While Service claim with port definition is avalable in testbed yaml maifest file it is not supported by cmsweb.
 
@@ -97,7 +97,9 @@ kubectl edit secrets dqmsecret -n dqm
 Deployment to the production cmsweb is similare, follow:
 https://cms-http-group.docs.cern.ch/k8s_cluster/cmsweb_production_cluster_doc/
 ```
-./scripts/deploy-srv.sh dqmsquare v1.1.0_pre34 prod
+export OS_TOKEN=$(openstack token issue -c id -f value)
+export KUBECONFIG=$PWD/config.cmsweb-k8s-services-prodnew
+./scripts/deploy-srv.sh dqmsquare v1.1.0 prod
 ```
 
 Tested with:  

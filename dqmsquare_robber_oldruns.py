@@ -19,20 +19,13 @@ if __name__ == '__main__':
   is_k8 = bool( cfg["ROBBER_K8"] )
 
   selenium_secret="changeme"
-  if is_k8:
-    try : 
-      temp = os.environ['DQM_PASSWORD']
-      temp = temp.encode()
-      temp = base64.b64encode( temp )
-      selenium_secret = temp.decode("utf-8")
-    except Exception as error_log:
-      log.warning( "dqm_2_grab(): can't load DQM_PASSWORD cookie" )
-      log.warning( error_log )
+  if is_k8: selenium_secret = dqmsquare_cfg.get_env_secret(log, 'DQM_PASSWORD')
 
-  log.info("begin ...")
+  log.info("\n\n\n =============================================================================== ")
+  log.info("\n\n\n dqmsquare_robber_oldruns ====================================================== ")
   error_logs = dqmsquare_cfg.ErrorLogs()
 
-  sites  = cfg["ROBBER_TARGET_SITES"].split(",")
+  sites  = cfg["ROBBER_OLDRUNS_TARGET_SITES"].split(",")
   opaths = cfg["ROBBER_OUTPUT_PATHS"].split(",")
   parser_paths = cfg["PARSER_OUTPUT_PATHS"].split(",")
   N_targets = len(sites)
@@ -67,7 +60,7 @@ if __name__ == '__main__':
     def cmsweb_dqm_login( driver ):
       if not is_k8 : return
       driver.get( str(cfg["ROBBER_K8_LOGIN_PAGE"]) );
-      driver.add_cookie({"name": "selenium-secret-secret", "value": selenium_secret})
+      driver.add_cookie({"name": str(cfg["FFF_SECRET_NAME"]), "value": selenium_secret})
       time.sleep( int(cfg["SLEEP_TIME"]) )
 
     ### setup browser driver
@@ -81,7 +74,7 @@ if __name__ == '__main__':
         except Exception as error_log:
           if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "", error_log ) :
             log.warning( "restart_browser(): can't close the browser, mb it already crashed?" )
-            log.warning( error_log )
+            log.warning( repr(error_log) )
 
       log.info("restart_browser(): setup Selenium WebDriver ...")
       if str(cfg["ROBBER_FIREFOX_PROFILE_PATH"]):
@@ -115,7 +108,7 @@ if __name__ == '__main__':
           except bool(cfg["ROBBER_DEBUG"]) or Exception as error_log:
             if error_logs.Check( "click on log button", error_log ) :
               log.warning( "dqm_2_grab(): can't click on log button" )
-              log.warning( error_log )
+              log.warning( repr(error_log) )
 
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
         if delete_old_canvases : 
@@ -138,7 +131,7 @@ if __name__ == '__main__':
             except Exception as error_log:
               if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "cant load and save image", error_log ) :
                 log.warning( "dqm_2_grab(): can't load and save image %s N tries left = %d" % ( opath_canv, n_tries) )
-                log.warning( error_log )
+                log.warning( repr(error_log) )
               n_tries -=1
               time.sleep( int(cfg["SLEEP_TIME"]) )
               continue
@@ -155,8 +148,6 @@ if __name__ == '__main__':
       log.debug( "get_old_runs(): load link %s ..." % link )
       driver.get( link )
       time.sleep( int(cfg["SLEEP_TIME"]) )
-      if is_k8: driver.get( link ) # second time for k8
-      time.sleep( int(cfg["SLEEP_TIME"]) )
 
       runs_done = []
       while True:
@@ -166,14 +157,14 @@ if __name__ == '__main__':
           log.warning( "get_old_runs(): no show-runs checkbox at %s, skip" % link )
           break
 
-        try:
-          scroll_shim( driver, runs_checkboxes[0] )
-          ActionChains(driver).move_to_element(runs_checkboxes[0]).click().perform()
-        except Exception as error_log:
-          if error_logs.Check( "get_old_runs(): can't click on checkbox", error_log ) :
-            log.warning( "get_old_runs(): can't click on checkbox at %s, skip" % sites[i] )
-            log.warning( error_log )
-          break
+        #try:
+        #  scroll_shim( driver, runs_checkboxes[0] )
+        #  ActionChains(driver).move_to_element(runs_checkboxes[0]).click().perform()
+        #except Exception as error_log:
+        #  if error_logs.Check( "get_old_runs(): can't click on checkbox", error_log ) :
+        #    log.warning( "get_old_runs(): can't click on checkbox at %s, skip" % sites[i] )
+        #    log.warning( repr(error_log) )
+        #  break
 
         all_runs_links = driver.find_elements_by_xpath( '//a[@class="label-run label label-info ng-binding ng-scope"]' )
         has_new_runs = False
@@ -203,7 +194,7 @@ if __name__ == '__main__':
           except Exception as error_log:
             if bool(cfg["ROBBER_DEBUG"]) :
               log.warning( "get_old_runs(): can't get correctly parser state, ignore parser info" )
-              log.warning( error_log )
+              log.warning( repr(error_log) )
 
           ### check if output already exist
           if not n_ongoing_runs :
@@ -228,7 +219,7 @@ if __name__ == '__main__':
           except Exception as error_log:
             if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "get_old_runs(): can't reach %s skip" % sites[i], error_log ) :
               log.warning( "get_old_runs(): can't reach %s skip ..." % sites[i] )
-              log.warning( error_log )
+              log.warning( repr(error_log) )
 
           runs_done += [ run_link.text ]
 
@@ -254,7 +245,7 @@ if __name__ == '__main__':
       except Exception as error_log:
         if bool(cfg["ROBBER_DEBUG"]) or error_logs.Check( "grabber crashed", error_log ) :
           log.warning("grabber crashed ...")
-          log.warning(error_log)
+          log.warning( repr(error_log) )
           reload_driver = True
 
       N_loops += 1
@@ -269,7 +260,7 @@ if __name__ == '__main__':
           restart_browser()
         except Exception as error_log:
           log.warning("not able to reload ... sleep more")
-          log.warning(error_log)
+          log.warning( repr(error_log) )
           time.sleep( int(cfg["SLEEP_TIME_LONG"]) )
           continue
         log.info("going to reload driver ... ok")

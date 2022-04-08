@@ -178,7 +178,9 @@ if __name__ == '__main__':
   NAME = "dqmsquare_parser.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["PARSER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["PARSER_DEBUG"])
-  log.info("begin ...")
+
+  log.info("\n\n\n =============================================================================== ")
+  log.info("\n\n\n dqmsquare_parser ============================================================== ")
 
   # prefix = "/dqm/dqm-square/"
   # if cfg["SERVER_LOCAL"] :  prefix = ""
@@ -351,7 +353,7 @@ if __name__ == '__main__':
       except Exception as error_log:
         print( error_log )
         log.warning("parser crashed for old runs ...")
-        log.warning(error_log)
+        log.warning( repr(error_log) )
 
     ### targets ...
     try:
@@ -370,10 +372,10 @@ if __name__ == '__main__':
             dqmsquare_cfg.clean_folder( folder, int(cfg["TMP_FILES_LIFETIME"]), log )
           except Exception as error_log:
             log.warning("parser crashed for cleaning tmp folders ...")
-            log.warning(error_log)
+            log.warning( repr(error_log) )
     except Exception as error_log:
       log.warning("parser crashed for current runs ...")
-      log.warning(error_log)
+      log.warning( repr(error_log) )
 
     ### print out ...
     try:
@@ -384,8 +386,8 @@ if __name__ == '__main__':
         processes_pages_n = 0
       else : log.debug("processes pages %s" % ",".join(processes_pages) )
     except Exception as error_log:
-      print ("parser crashed for something else (logger, timestamp) ...")
-      print (error_log)
+      log.warning("parser crashed for something else (logger, timestamp) ...")
+      log.warning( repr(error_log) )
 
     time.sleep( int(cfg["SLEEP_TIME"]) )
 

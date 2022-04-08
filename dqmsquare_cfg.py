@@ -19,6 +19,7 @@ cfg["TMP_FOLDER_TO_CLEAN"] = "tmp"
 cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
 cfg["LOGGER_MAX_N_LOG_FILES"] = 15 # int
 cfg["FIREFOX_RELOAD_NITERS"] = 5000 # 10000 # int ~ twice per week - 24 * 7 * 60 * 60 / 30
+cfg["FFF_SECRET_NAME"] = 'selenium-secret-secret'
 
 #cfg["SERVER_LOCAL"] = True
 cfg["SERVER_DEBUG"] = True
@@ -53,6 +54,7 @@ cfg["ROBBER_GRAB_LOGS"] = True
 cfg["ROBBER_GRAB_GRAPHS"] = True
 cfg["ROBBER_GRAB_OLDRUNS"] = True
 cfg["ROBBER_TARGET_SITES"] = "http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 cfg["ROBBER_OUTPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
 cfg["ROBBER_RELOAD_NITERS"] = 100
 cfg["ROBBER_LOG_PATH"]         = "log/robber1.log"
@@ -94,11 +96,13 @@ def set_k8_options(testbed = False):
   cfg["ROBBER_GECKODRIVER_PATH"] = "/usr/bin/geckodriver"
   cfg["ROBBER_FIREFOX_PROFILE_PATH"] = "/firefox_profile_path"
   cfg["ROBBER_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+  cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
   if not testbed : 
     cfg["SERVER_FFF_CR_PATH"]   = "https://cmsweb.cern.ch/dqm/dqm-square-origin/"
     cfg["ROBBER_K8_LOGIN_PAGE"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/login"
     cfg["ROBBER_TARGET_SITES"]  = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+    cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):
@@ -251,9 +255,9 @@ def get_parser_info( path_to_parser_output_page ):
   return info_dic
 
 ### Other
-def dump_tmp_file( data, path, prefix ):
+def dump_tmp_file( data, path, prefix, postfix ):
   import tempfile
-  f = tempfile.NamedTemporaryFile(mode='w', prefix=prefix, dir=path, delete=False)
+  f = tempfile.NamedTemporaryFile(mode='w', prefix=prefix, suffix=postfix, dir=path, delete=False)
   f.write( data )
   f.close()
   return os.path.basename( f.name )
@@ -281,11 +285,30 @@ def clean_folder(path_to_outfile, threshold, log):
     if abs(timestamp - now) / 60 / 60 < threshold : continue
     delete_file( f, log )
 
+def get_env_secret(log, secret_name='DQM_PASSWORD'):
+  import base64
+  env_secret=None
+  try : 
+    env_secret = os.environ[secret_name]
+    # temp = temp.encode()
+    # temp = base64.b64encode( temp )
+    # env_secret = temp.decode("utf-8")
+  except Exception as error_log:
+    log.warning( "get_env_secret(): can't load DQM_PASSWORD cookie" )
+    log.warning( repr(error_log) )
+  return env_secret
 
-
-
-
-
+def get_cr_usernames(log, secret_name='DQM_CR_USERNAMES'):
+  raw_data = get_env_secret(log, secret_name)
+  if not raw_data : return { "username" : "password" }
+  answer = {}
+  for pairs in raw_data.split(",") :
+    try : 
+      username, password = pairs.split(":")
+      answer[ username ] = password
+    except Exception as error_log:
+      log.warning( "get_cr_usernames(): can't split data \"" + pairs + "\"" )
+  return answer
 
 
 
