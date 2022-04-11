@@ -249,16 +249,41 @@
       }
     }
 
+    function cr_dqm_change_client( checkbox ){
+      const words = checkbox.name.split(',');
+      const machine = words[1];
+      const client  = words[2];
+
+      push_to_console( "Process ... " + machine + " " + client + " to " + String(checkbox.checked) );
+      checkbox.disabled = true;
+
+      let req = "/cr/exe?what=change_dqm_client&host="+machine + "&client=" + client + "&state=" + String(checkbox.checked);
+      let xhttp_def_pl = new XMLHttpRequest();
+      xhttp_def_pl.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status != 200) {
+          push_to_console( "Error, XMLHttpRequest status="+this.status );
+          push_to_console( "responseText: " + this.responseText );
+        }
+        if (this.readyState == 4 && this.status == 200) {
+          push_to_console( this.responseText );
+          checkbox.disabled = false;
+        }
+      }
+      xhttp_def_pl.open("GET", req, true);
+      xhttp_def_pl.send();
+    }
+
     function cr_get_dqm_clients_tabe_content( item ){
       cr_get_dqm_clients( item, function( clients ){
         let content = "<div id=\'tab " + item + "\' class=\"tabcontent\">";
         clients_a = eval(clients);
         push_to_console( clients );
         clients_a.forEach(function(client, index, array) {
+          let name = "check," + item + "," + client[0];
           if( Boolean(client[1]) ){
-            content += "<input type=\"checkbox\" name=\"check " + item + " " + client + "\" checked > " + client[0] + " <br>";
+            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this)\" checked /> <span id=" + name + "> " + client[0] + " </label> <br>";
           } else {
-            content += "<input type=\"checkbox\" name=\"check " + item + " " + client + "\" > " + client[0] + " <br>";
+            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this)\" /> <span id=" + name + "> " + client[0] + " <br>";
           };
         });
         document.getElementById("clients_playback_tabs").innerHTML += content + "</p> </div>";
