@@ -105,8 +105,8 @@
 
      <!-- Tab links -->
     <div class="row">
-      <div class="column2"> <div class="tab" id="clients_playback"></div> <div id="clients_playback_tabs"> </div> </div>
       <div class="column2"> <div class="tab" id="clients_production"></div> <div id="clients_production_tabs"></div> </div>
+      <div class="column2"> <div class="tab" id="clients_playback"></div> <div id="clients_playback_tabs"> </div> </div>
     </div>
   </div>
 
@@ -234,9 +234,9 @@
       process_cr_button(xhttp_start_playback_run, "/cr/exe?what=start_playback_run&run_number="+run_number + "&run_key=" + run_key + "&number_of_ls=" + number_of_ls, "btn_start_playback_run");
     }
 
-    function cr_get_dqm_clients( host, callback ){
+    function cr_get_dqm_clients( host, playback, callback ){
       let xhttp_def_pl = new XMLHttpRequest();
-      xhttp_def_pl.open("GET", "/cr/exe?what=get_dqm_clients&host=" + host, true);
+      xhttp_def_pl.open("GET", "/cr/exe?what=get_dqm_clients&host=" + host + "&playback=" + playback, true);
       xhttp_def_pl.send();
       xhttp_def_pl.onreadystatechange = function() {
         if (this.readyState == 4 && this.status != 200) {
@@ -244,12 +244,12 @@
           push_to_console( "responseText: " + this.responseText );
         }
         if (this.readyState == 4 && this.status == 200) {
-          callback( JSON.parse( xhttp_def_pl.responseText ) );
+          callback( xhttp_def_pl.responseText );
         }
       }
     }
 
-    function cr_dqm_change_client( checkbox ){
+    function cr_dqm_change_client( checkbox, playback ){
       const words = checkbox.name.split(',');
       const machine = words[1];
       const client  = words[2];
@@ -257,7 +257,8 @@
       push_to_console( "Process ... " + machine + " " + client + " to " + String(checkbox.checked) );
       checkbox.disabled = true;
 
-      let req = "/cr/exe?what=change_dqm_client&host="+machine + "&client=" + client + "&state=" + String(checkbox.checked);
+      let checked = checkbox.checked ? 1 : 0;
+      let req = "/cr/exe?what=change_dqm_client&host="+machine + "&client=" + client + "&state=" + String(checked) + "&playback=" + playback;
       let xhttp_def_pl = new XMLHttpRequest();
       xhttp_def_pl.onreadystatechange = function() {
         if (this.readyState == 4 && this.status != 200) {
@@ -266,27 +267,26 @@
         }
         if (this.readyState == 4 && this.status == 200) {
           push_to_console( this.responseText );
-          checkbox.disabled = false;
+          if( this.responseText == "Ok" ) checkbox.disabled = false;
         }
       }
       xhttp_def_pl.open("GET", req, true);
       xhttp_def_pl.send();
     }
 
-    function cr_get_dqm_clients_tabe_content( item ){
-      cr_get_dqm_clients( item, function( clients ){
+    function cr_get_dqm_clients_tabe_content( item, playback, element_tabs ){
+      cr_get_dqm_clients( item, playback, function( clients ){
         let content = "<div id=\'tab " + item + "\' class=\"tabcontent\">";
         clients_a = eval(clients);
-        push_to_console( clients );
         clients_a.forEach(function(client, index, array) {
           let name = "check," + item + "," + client[0];
           if( Boolean(client[1]) ){
-            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this)\" checked /> <span id=" + name + "> " + client[0] + " </label> <br>";
+            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" checked /> <span id=" + name + "> " + client[0] + " </label> <br>";
           } else {
-            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this)\" /> <span id=" + name + "> " + client[0] + " <br>";
+            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" /> <span id=" + name + "> " + client[0] + " <br>";
           };
         });
-        document.getElementById("clients_playback_tabs").innerHTML += content + "</p> </div>";
+        document.getElementById( element_tabs ).innerHTML += content + "</p> </div>";
       });
     }
 
@@ -349,7 +349,7 @@
         dqm_machines_pl.forEach(function(item, index, array) {
           if( item.charAt(0) == "b" ) return;
           text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
-          cr_get_dqm_clients_tabe_content( item );
+          cr_get_dqm_clients_tabe_content( item, "1", "clients_playback_tabs" );
         });
 
         document.getElementById("clients_playback").innerHTML = text_clients;
@@ -392,15 +392,13 @@
 
         // clients
         let text_clients = "<strong>Production clients:</strong> <br>" ;
-        let text_clients_tabs = "" ;
         dqm_machines_pr.forEach(function(item, index, array) {
           if( item.charAt(0) == "b" ) return;
           text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
-          text_clients_tabs += "<div id=\'tab " + item + "\' class=\"tabcontent\"> <p>" + item + "</p> </div>"
-        })
+          cr_get_dqm_clients_tabe_content( item, "0", "clients_production_tabs" );
+        });
 
         document.getElementById("clients_production").innerHTML = text_clients;
-        document.getElementById("clients_production_tabs").innerHTML = text_clients_tabs;
       }
     }
 
@@ -503,7 +501,6 @@
     }
 
     // Show the current tab, and add an "active" class to the button that opened the tab
-    push_to_console( cityName )
     document.getElementById(cityName).style.display = "block";
     evt.currentTarget.className += " active";
   } 

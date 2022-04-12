@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     # DQM & FFF & HLTD
     cr_path = cfg["SERVER_FFF_CR_PATH"]
-    cert_path = [cfg["SERVER_GRID_CERT_PATH"], cfg["SERVER_GRID_KEY_PATH"]]
+    cert_path = [ cfg["SERVER_GRID_CERT_PATH"], cfg["SERVER_GRID_KEY_PATH"] ]
     selenium_secret = "changeme"
     env_secret = dqmsquare_cfg.get_env_secret(log, 'DQM_PASSWORD')
     if env_secret : selenium_secret = env_secret
@@ -224,8 +224,13 @@ if __name__ == '__main__':
         log.warning( "cr_exe() initial request : " + repr(error_log) )
         return repr(error_log)
 
+      log.warning( what )
+
       if what in ["get_dqm_machines", "get_simulator_config", "get_hltd_versions", "get_fff_versions", "restart_hltd", "restart_fff", "get_simulator_runs", "start_playback_run", "get_dqm_clients", "change_dqm_client"] :
         # change format to be printable
+        if what in [ "get_dqm_clients", "change_dqm_client" ] :
+          print( url )
+
         answer = dqm2_answer
         try:
           format = bottle.request.query.get('format', default=None)
@@ -237,7 +242,7 @@ if __name__ == '__main__':
               for host, version in sorted( lst.items() ) :
                 answer += host + " " + version
 
-          if what == "get_dqm_machines" and format:
+          if what == "get_dqm_machines" and format :
             answer = ""
             data   = json.loads( dqm2_answer )
             for key, lst in sorted( data.items() ):
