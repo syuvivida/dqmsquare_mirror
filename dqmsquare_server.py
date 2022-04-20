@@ -226,11 +226,8 @@ if __name__ == '__main__':
 
       log.warning( what )
 
-      if what in ["get_dqm_machines", "get_simulator_config", "get_hltd_versions", "get_fff_versions", "restart_hltd", "restart_fff", "get_simulator_runs", "start_playback_run", "get_dqm_clients", "change_dqm_client"] :
+      if what in ["get_dqm_machines", "get_simulator_config", "get_hltd_versions", "get_fff_versions", "restart_hltd", "restart_fff", "get_simulator_runs", "start_playback_run", "get_dqm_clients", "change_dqm_client", "get_cmssw_info"] :
         # change format to be printable
-        if what in [ "get_dqm_clients", "change_dqm_client" ] :
-          print( url )
-
         answer = dqm2_answer
         try:
           format = bottle.request.query.get('format', default=None)

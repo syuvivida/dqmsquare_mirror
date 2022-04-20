@@ -75,6 +75,18 @@
       border-top: none;
     } 
 
+    /* progress bars */
+    #myProgress {
+      width: 100%;
+      background-color: #ddd;
+    }
+
+    #myBar {
+      width: 1%;
+      height: 5px;
+      background-color: #2471a3;
+    }
+
   </style>
 </head>
 <body onload="">
@@ -86,10 +98,15 @@
     <strong>Output:</strong>
     <div id="console" class="techtext"> </div>
 
+    <div id="myProgress">
+      <div id="myBar"></div>
+    </div>
+
     <button class="btn" id="btn_get_dqm_machines" onclick="cr_get_dqm_machines()">Print DQM machines</button>
     <button class="btn" id="btn_get_hltd_version" onclick="cr_get_hltd_version()">Print HLTD versions</button>
     <button class="btn" id="btn_get_fff_version" onclick="cr_get_fff_version()">Print FFF versions</button>
     <button class="btn" id="btn_get_simulator_config" onclick="cr_get_simulator_config()">Print Simulator config</button>
+    <button class="btn" id="btn_get_cmssw_info" onclick="cr_get_cmssw_info()">Print CMSSW info</button>
 
     <div class="row">
       <div class="column"> <div id="hltd_production"> </div></div>
@@ -111,6 +128,17 @@
   </div>
 
   <script>
+    // load bar
+    var bar_N_req  = 0;
+    var bar_N_done = 0;
+    function updateBar(done) {
+      if( done ) bar_N_done += 1;
+      else       bar_N_req  += 1;
+      var elem = document.getElementById("myBar");
+      elem.style.width = Math.min(bar_N_done/Math.max(bar_N_req,1) * 100, 100) + "%";
+    }
+
+    // console
     var MAX_CONSOLE_SIZE = 80
 
     var console_content = []; 
@@ -225,6 +253,12 @@
       process_cr_button(xhttp_simulator_config, "/cr/exe?what=get_simulator_config&format=1", "btn_get_simulator_config");
     }
 
+    var xhttp_cmssw_info = new XMLHttpRequest();
+    set_cr_button(xhttp_cmssw_info, "btn_get_cmssw_info")
+    function cr_get_cmssw_info(){
+      process_cr_button(xhttp_cmssw_info, "/cr/exe?what=get_cmssw_info&format=1", "btn_get_cmssw_info");
+    }
+
     var xhttp_start_playback_run = new XMLHttpRequest();
     set_cr_button(xhttp_start_playback_run, "btn_start_playback_run")
     function cr_start_playback_run(){
@@ -238,12 +272,14 @@
       let xhttp_def_pl = new XMLHttpRequest();
       xhttp_def_pl.open("GET", "/cr/exe?what=get_dqm_clients&host=" + host + "&playback=" + playback, true);
       xhttp_def_pl.send();
+      updateBar( false );
       xhttp_def_pl.onreadystatechange = function() {
         if (this.readyState == 4 && this.status != 200) {
           push_to_console( "Error, XMLHttpRequest status="+this.status );
           push_to_console( "responseText: " + this.responseText );
         }
         if (this.readyState == 4 && this.status == 200) {
+          updateBar( true );
           callback( xhttp_def_pl.responseText );
         }
       }
@@ -312,6 +348,7 @@
     // playback machines
     var xhttp_def_pl = new XMLHttpRequest();
     xhttp_def_pl.open("GET", "/cr/exe?what=get_dqm_machines&kind=playback", true);
+    updateBar(false);
     xhttp_def_pl.send();
     xhttp_def_pl.onreadystatechange = async function() {
       if (this.readyState == 4 && this.status != 200) {
@@ -319,6 +356,7 @@
         push_to_console( "responseText: " + this.responseText );
       }
       if (this.readyState == 4 && this.status == 200) {
+        updateBar(true);
         dqm_machines_pl = eval( xhttp_def_pl.responseText );
 
         let text = "<strong>Playback machines:</strong> <br>" ;
@@ -358,6 +396,7 @@
     // production machines
     var xhttp_def_pr = new XMLHttpRequest();
     xhttp_def_pr.open("GET", "/cr/exe?what=get_dqm_machines&kind=production", true);
+    updateBar(false);
     xhttp_def_pr.send();
     xhttp_def_pr.onreadystatechange = function() {
       if (this.readyState == 4 && this.status != 200) {
@@ -365,6 +404,7 @@
         push_to_console( "responseText: " + this.responseText );
       }
       if (this.readyState == 4 && this.status == 200) {
+        updateBar(true);
         dqm_machines_pr = eval( xhttp_def_pr.responseText );
         let text = "<strong>Production machines:</strong> <br>" 
         // get logs
@@ -434,6 +474,7 @@
     var LS_number_dropbox = document.getElementById("LS_number");
     var xhttp_def_get_simulator_config = new XMLHttpRequest();
     xhttp_def_get_simulator_config.open("GET", "/cr/exe?what=get_simulator_config", true);
+    updateBar(false);
     xhttp_def_get_simulator_config.send();
     xhttp_def_get_simulator_config.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 400) {
@@ -441,6 +482,7 @@
         push_to_console( "responseText: " + this.responseText );
       }
       if (this.readyState != 4 || this.status != 200) return;
+      updateBar(true);
       removeOptions( run_numbers_dropbox );
       removeOptions( run_key_dropbox );
 
@@ -453,6 +495,7 @@
       var xhttp_keys = new XMLHttpRequest();
       xhttp_keys.open("GET", "/cr/exe?what=get_simulator_run_keys", true);
       xhttp_keys.send();
+      updateBar(false);
       xhttp_keys.onreadystatechange = function() {
         if (this.readyState != 4) return;
         if (this.status == 400) {
@@ -460,6 +503,7 @@
           push_to_console( xhttp_keys.responseText );
         }
         if (this.status == 200) {
+          updateBar(true); 
           var run_classes = eval( xhttp_keys.responseText );
           addOptions(run_key_dropbox, run_classes);
 
@@ -470,6 +514,7 @@
       var xhttp_runs = new XMLHttpRequest();
       xhttp_runs.open("GET", "/cr/exe?what=get_simulator_runs", true);
       xhttp_runs.send();
+      updateBar(false);
       xhttp_runs.onreadystatechange = function() {
         if (this.readyState != 4) return;
         if (this.status == 400) {
@@ -477,6 +522,7 @@
           push_to_console( xhttp_keys.responseText );
         }
         if (this.status == 200) {
+          updateBar(true); 
           var run_numbers = eval( xhttp_runs.responseText );
           addOptions(run_numbers_dropbox, run_numbers);
           setDefaultOptions(run_numbers_dropbox, run_name);
