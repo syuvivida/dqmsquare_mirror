@@ -30,11 +30,12 @@ cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = "tmp/content_parser_production"
 cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/server.log"
-cfg["SERVER_DATA_PATH"]               = ""
+cfg["SERVER_DATA_PATH"]               = "/"
 cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
 cfg["SERVER_GRID_CERT_PATH"]          = "/home/pmandrik/CERT_TEST/np/usercert.pem"
 cfg["SERVER_GRID_KEY_PATH"]           = "/home/pmandrik/CERT_TEST/np/userkey.pem"
 cfg["SERVER_SIMULATOR_RUN_KEYS"]      = "cosmic_run,pp_run,commisioning_run"
+cfg["SERVER_LINK_PREFIX"]             = ""
 
 cfg["PARSER_DEBUG"]  = False
 cfg["PARSER_RANDOM"] = False
@@ -79,6 +80,7 @@ def set_k8_options(testbed = False):
   cfg["TMP_FOLDER_TO_CLEAN"] = mount_path + cfg["TMP_FOLDER_TO_CLEAN"]
   cfg["SERVER_PORT"] = 8084
   cfg["SERVER_DATA_PATH"] = mount_path
+  cfg["SERVER_LINK_PREFIX"]  = "/dqm/dqm-square-k8"
   cfg["SERVER_K8"] = True
   cfg["SERVER_LOG_PATH"]     = mount_path + cfg["SERVER_LOG_PATH"]
   cfg["PARSER_INPUT_PATHS"]  = ",".join( [mount_path + x for x in cfg["PARSER_INPUT_PATHS"].split(",")] )
@@ -99,7 +101,7 @@ def set_k8_options(testbed = False):
   cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
   if not testbed : 
-    cfg["SERVER_FFF_CR_PATH"]   = "https://cmsweb.cern.ch/dqm/dqm-square-origin/"
+    cfg["SERVER_FFF_CR_PATH"]   = "https://cmsweb.cern.ch/dqm/dqm-square-origin"
     cfg["ROBBER_K8_LOGIN_PAGE"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/login"
     cfg["ROBBER_TARGET_SITES"]  = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
     cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"

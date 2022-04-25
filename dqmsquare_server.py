@@ -37,7 +37,8 @@ def start_server( cfg ):
 if __name__ == '__main__':
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["SERVER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], True)
-  SERVER_DATA_PATH = cfg["SERVER_DATA_PATH"]
+  SERVER_DATA_PATH   = cfg["SERVER_DATA_PATH"]
+  SERVER_LINK_PREFIX = cfg["SERVER_LINK_PREFIX"]
 
   log.info("\n\n\n =============================================================================== ")
   log.info("\n\n\n dqmsquare_server ============================================================== ")
@@ -105,7 +106,7 @@ if __name__ == '__main__':
   if True:
     ### CR ###
     cr_usernames      = dqmsquare_cfg.get_cr_usernames(log, "DQM_CR_USERNAMES")
-    env_cookie_secret = dqmsquare_cfg.get_env_secret(log, "DQM_CR_PASSWORD")
+    env_cookie_secret = dqmsquare_cfg.get_env_secret(log, "DQM_CR_SECRET")
     cookie_secret = env_cookie_secret if env_cookie_secret else "secret"
     def check_login(username, password, cookie=False):
       if username not in cr_usernames : return False
@@ -121,7 +122,6 @@ if __name__ == '__main__':
       log.info( "login result " + str(check_login(username, password)) ) 
       if check_login(username, password):
         bottle.response.set_cookie( "dqmsquare-mirror-cr-account", username, secret=cookie_secret, path="/", max_age=24*60*60, httponly=True)
-        bottle.redirect("/dqm/dqm-square-k8/cr")
         if cfg["SERVER_K8"] : bottle.redirect("https://cmsweb.cern.ch/dqm/dqm-square-k8/cr")
         else                : bottle.redirect("/dqm/dqm-square-k8/cr")
         return "<p>Your login information was correct.</p>"
@@ -276,7 +276,7 @@ if __name__ == '__main__':
             log.warning( "cr_exe() : error in dqmsquare_cfg.dump_tmp_file for file:" )
             log.warning( repr(error_log) )
             continue
-          fnames += [ SERVER_DATA_PATH+'/tmp/' + fname ]
+          fnames += [ SERVER_LINK_PREFIX + SERVER_DATA_PATH+'tmp/' + fname ]
         return str(fnames)
 
       # default answer

@@ -94,11 +94,17 @@ Also create Secret if it is not created before or edit it:
 kubectl apply -f k8_secret.yaml -n dqm
 kubectl edit secrets dqmsecret -n dqm
 ```
+Secret value inside dqmsecret need to be in base64 format:
+```
+echo -n 'SECRET' | base64
+```
+
 Deployment to the production cmsweb is similare, follow:
 https://cms-http-group.docs.cern.ch/k8s_cluster/cmsweb_production_cluster_doc/
 ```
+wget https://cernbox.cern.ch/index.php/s/gLNiHYaGF8QbPrO/download -O config.cmsweb-k8s-services-prod
+export KUBECONFIG=$PWD/config.cmsweb-k8s-services-prod
 export OS_TOKEN=$(openstack token issue -c id -f value)
-export KUBECONFIG=$PWD/config.cmsweb-k8s-services-prodnew
 ./scripts/deploy-srv.sh dqmsquare v1.1.0 prod
 ```
 
