@@ -104,6 +104,14 @@ if __name__ == '__main__':
       return content
 
   if True:
+    ### HBEAT ###
+    @route('/heartbeat')
+    @route('/heartbeat/')
+    @route('/dqm/dqm-square-k8/heartbeat')
+    @route('/dqm/dqm-square-k8/heartbeat/')
+    def get_static(name='Stranger'):
+      return static_file("dqm_heartbeat.html", root='./static/')
+
     ### CR ###
     cr_usernames      = dqmsquare_cfg.get_cr_usernames(log, "DQM_CR_USERNAMES")
     env_cookie_secret = dqmsquare_cfg.get_env_secret(log, "DQM_CR_SECRET")

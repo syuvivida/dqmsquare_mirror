@@ -7,7 +7,7 @@ The architecture is sequential:
 * dqmsquare_robber.py - uses firefox webdriver (installed on the same pc) & selenium library to load DQM^2 page and execute JavaScript and save a copy to local folder. It is also used to click on *log* button in order to get the logs of the jobs withing the page, click on *graph* button in order to get the link to the graph-images and then save them as separate files into the tmp folder  
 * dqmsquare_robber_oldruns.py - similare to dqmsquare_robber.py but click on *run number* buttons in order to switch to old runs and grab them too as separate files  
 * dqmsquare_parser.py - parses the files made by dqmsquare_robber.py using based on BeautifulSoupin order to extract job status information and logs, lumis and run information and put it into html files. The parser is also remove tmp files older than TMP_FILES_LIFETIME.  
-* dqmsquare_server.py - simple server to show html files made by dqmsquare_parser.py  
+* dqmsquare_server.py - simple server to show html files made by dqmsquare_parser.py. Also host Control Room and other servises.  
 * dqmsquare_cfg.py - for CFG and common code, run it to produce default .cfg file  
 The work is periodic: dqmsquare_robber.py retrieves the information every X seconds, 
 dqmsquare_parser.py tries to produce new html files every Y seconds,
@@ -98,6 +98,7 @@ Secret value inside dqmsecret need to be in base64 format:
 ```
 echo -n 'SECRET' | base64
 ```
+To be able to connect DQM^2 at P5, the secrets at DQM^2 Mirror need to match secrets at DQM^2. 
 
 Deployment to the production cmsweb is similare, follow:
 https://cms-http-group.docs.cern.ch/k8s_cluster/cmsweb_production_cluster_doc/
@@ -112,9 +113,13 @@ Tested with:
 * Python: 3.6  
 * Bottle: 0.12.19  
 * Geckodriver: 0.30.0  
-* beautifulsoup4==4.10.0
-* selenium==3.141.0
-* Firefox 91.2.0esr
+* beautifulsoup4==4.10.0  
+* selenium==3.141.0  
+* Firefox 91.2.0esr  
+
+#### DQM^2 Mirror Control Room (CR)
+CR is a place to simplify the operations of DQM servises. It send requests to DQM^2 on one of the playback machine at P5 where requests are executed.
+Secrets and versions of DQM^2 need to match DQM^2 Mirror requirements, please check for more info https://github.com/cms-DQM/fff_dqmtools
 
 ##### Scripts
 1. dqmsquare_cert.sh imports .pem certificates provided by cmsweb k8 cluster into .p12 format and then into NSS sql DB used by firefox without master password.
