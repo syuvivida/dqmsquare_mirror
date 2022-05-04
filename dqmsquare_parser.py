@@ -23,7 +23,7 @@ class DQMPageData( ):
     self.input_file  = input_file
     self.run_number = "-"
     self.origin_run_number = ""
-    self.link_prefix = ""
+    self.link_prefix = self.cfg["PARSER_LINK_PREFIX"]
     self.old_runs_pages = []
 
     self.colors = {"G" : "#52BE80", "R" : "#EC7063", "Y" : "#F4D03F", "title" : "#2471a3" }
@@ -37,6 +37,7 @@ class DQMPageData( ):
     d = {"name" : self.GetServerName(name), "state" : state}
     d["state_attr"] = 'style="background-color:' + self.colors["Y"] + '"'
     if "live" in state : d["state_attr"] = 'style="background-color:' + self.colors["G"] + '"'
+    if "http mode" in state : d["state_attr"] = 'style="background-color:' + self.colors["G"] + '"'
     if "closed" in state : d["state_attr"] = 'style="background-color:' + self.colors["R"] + '"'
     self.servers += [ d ]
 
@@ -95,7 +96,7 @@ class DQMPageData( ):
       for run_id, link in self.old_runs_pages :
         if str(run_id) == str(self.run_number) : continue # extra skip the duplicate of on-going run in this list
         if link : 
-          content += '<a href="'+link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
+          content += '<a href="'+self.link_prefix + link+'" target="_blank"> <strong>' + run_id + '</strong> </a> &nbsp;'
         else : 
           content += '<strong>' + run_id + '</strong>&nbsp;'
       content += '\n\n'
@@ -149,7 +150,7 @@ class DQMPageData( ):
       fname    = os.path.basename(self.input_file)
       for item in os.listdir( dir_name ) : 
         if not dqmsquare_cfg.is_TMP_robber_canvas_name( fname, item ) : continue
-        content += "<img src=" + os.path.join(dir_name, item) + ">\n"
+        content += "<img src=" + self.link_prefix + os.path.join(dir_name, item) + ">\n"
 
     ### write out body
     if self.output_file and write_out : 
@@ -177,7 +178,9 @@ if __name__ == '__main__':
   NAME = "dqmsquare_parser.py:"
   cfg  = dqmsquare_cfg.load_cfg( 'dqmsquare_mirror.cfg' )
   dqmsquare_cfg.set_log_handler(log, cfg["PARSER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], cfg["PARSER_DEBUG"])
-  log.info("begin ...")
+
+  log.info("\n\n\n =============================================================================== ")
+  log.info("\n\n\n dqmsquare_parser ============================================================== ")
 
   # prefix = "/dqm/dqm-square/"
   # if cfg["SERVER_LOCAL"] :  prefix = ""
@@ -315,7 +318,7 @@ if __name__ == '__main__':
     old_runs_pages_dic = defaultdict( list )
     if bool(cfg["PARSER_PARSE_OLDRUNS"]) : 
       try:
-        for i in xrange(N_targets):
+        for i in range(N_targets):
           dir_name = os.path.dirname( ipaths[i] )
           fname    = os.path.basename(ipaths[i] )
 
@@ -348,13 +351,13 @@ if __name__ == '__main__':
             old_runs_pages_dic[ i ] = sorted( old_runs_pages_dic[ i ], key=lambda x : -int(x[0]) )
 
       except Exception as error_log:
-        print error_log
+        print( error_log )
         log.warning("parser crashed for old runs ...")
-        log.warning(error_log)
+        log.warning( repr(error_log) )
 
     ### targets ...
     try:
-      for i in xrange(N_targets):
+      for i in range(N_targets):
         dqm_data = parse_dqmsquare_page( ipaths[i], opaths[i] )
         if not dqm_data : 
           create_dummy_page( opaths[i] )
@@ -363,16 +366,16 @@ if __name__ == '__main__':
         dqm_data.Dump(True, True)
         processes_pages += [ ipaths[i] ]
 
-        if bool(cfg["TMP_CLEAN_FILES"]) :
+      if bool(cfg["TMP_CLEAN_FILES"]) :
+        for folder in cfg["TMP_FOLDER_TO_CLEAN"].split(",") :
           try:
-            dqmsquare_cfg.clean_folder( ipaths[i], int(cfg["SLEEP_TIME"]), log ) # robber i-th tmp folder
-            dqmsquare_cfg.clean_folder( opaths[i], int(cfg["SLEEP_TIME"]), log ) # parser i-th tmp folder
+            dqmsquare_cfg.clean_folder( folder, int(cfg["TMP_FILES_LIFETIME"]), log )
           except Exception as error_log:
             log.warning("parser crashed for cleaning tmp folders ...")
-            log.warning(error_log)
+            log.warning( repr(error_log) )
     except Exception as error_log:
       log.warning("parser crashed for current runs ...")
-      log.warning(error_log)
+      log.warning( repr(error_log) )
 
     ### print out ...
     try:
@@ -383,8 +386,8 @@ if __name__ == '__main__':
         processes_pages_n = 0
       else : log.debug("processes pages %s" % ",".join(processes_pages) )
     except Exception as error_log:
-      print ("parser crashed for something else (logger, timestamp) ...")
-      print (error_log)
+      log.warning("parser crashed for something else (logger, timestamp) ...")
+      log.warning( repr(error_log) )
 
     time.sleep( int(cfg["SLEEP_TIME"]) )
 
