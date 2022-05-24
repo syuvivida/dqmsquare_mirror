@@ -233,6 +233,10 @@ if __name__ == '__main__':
         return repr(error_log)
 
       log.warning( what )
+      if what in ["get_production_runs"] :
+        return ",".join([str(i)+str(i)+str(i)+str(i)+str(i)+str(i) + "_" + str(i)+str(i)+str(i) for i in range(10)])
+      if what in ["copy_production_runs"] :
+        return "Ok"
 
       if what in ["get_dqm_machines", "get_simulator_config", "get_hltd_versions", "get_fff_versions", "restart_hltd", "restart_fff", "get_simulator_runs", "start_playback_run", "get_dqm_clients", "change_dqm_client", "get_cmssw_info"] :
         # change format to be printable
