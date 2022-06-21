@@ -140,8 +140,8 @@ class DQMPageData( ):
     for attr, row in zip(self.jobs_attr, self.jobs) :
       content += "<tr " + attr['row_attr'] + "> "
       for col in row : 
-        content += '<td class="job_table_cell">' + col + "<td> "
-      content += "</td>\n"
+        content += '<td class="job_table_cell">' + col + "</td> "
+      content += "</tr>\n"
     content += "</table>\n"
 
     ### images if exist

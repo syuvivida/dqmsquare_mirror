@@ -1,78 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <style>
-    /* btns style */
-    .btn {
-      border: none;
-      outline: none;
-      padding: 4px 25px;
-      background-color:  #5dade2 ;
-      color: #f2f2f2;
-      cursor: pointer;
-      font-size: 18px;
-      color:  #d4e6f1 ;
-      font-weight: bold;
-    }
-
-    .active {
-      background-color: #52BE80;
-      color: #f2f2f2;
-      -webkit-animation: glowing 2500ms infinite;
-      -moz-animation: glowing 2500ms infinite;
-      -o-animation: glowing 2500ms infinite;
-      animation: glowing 2500ms infinite;
-    }
-    @-webkit-keyframes glowing {
-      0% { background-color:  #1e8449;    }
-      50% { background-color: #17a589 ;    }
-      100% { background-color:  #1e8449;  }
-    }
-
-    @-moz-keyframes glowing {
-      0% { background-color: #1e8449;    }
-      50% { background-color: #17a589 ;   }
-      100% { background-color: #1e8449;  }
-    }
-
-    @-o-keyframes glowing {
-      0% { background-color: #1e8449;    }
-      50% { background-color: #17a589 ;   }
-      100% { background-color: #1e8449;  }
-    }
-
-    @keyframes glowing {
-      0% { background-color: #1e8449;    }
-      50% { background-color: #17a589 ;   }
-      100% { background-color: #1e8449;  }
-    }
-
-    .btn:hover{
-      background-color:  #239b56 ;
-      color:  #d4ac0d  ;
-    }
-
-	  .title {
-        padding-left: 16px;
-        padding-top: 7px;
-        padding-right: 16px;
-        padding-bottom: 7px;
-        text-decoration: none;
-        font-size: 18px;
-        background-color: #2471a3;
-        color:  #d4e6f1 ;
-        font-weight: bold;
-      }
-
-    .server_table_cell{
-      padding:0 15px 0 15px;
-    }
-
-    .job_table_cell{
-      padding:0 15px 0 15px;
-    }
-
-  </style>
+  <link rel="stylesheet" href="/static/dqm_style.css">
 </head>
 <body onload="init_load_production()">
 
@@ -80,8 +9,8 @@
   DQM <sup>2</sup> &#x25A0; Mirror
     <button class="btn" id="btn_production" onclick="init_load_production()">production</button>
     <button class="btn" id="btn_playback" onclick="init_load_playback()">playback</button>
-    &#x25A0; <a href="/dqm/dqm-square-k8/cr/">Control Room</a> 
-    &#x25A0; <a href="/dqm/dqm-square-k8/heartbeat/">Heartbeat</a> 
+    &#x25A0; <a href="/dqm/dqm-square-k8/cr/" class="mlink">Control Room</a> 
+    &#x25A0; <a href="/dqm/dqm-square-k8/timeline/" class="mlink">Timeline</a> 
   </div>
 
   <p style="clear:both;margin-bottom:25px"></p>

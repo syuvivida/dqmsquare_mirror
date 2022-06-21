@@ -75,6 +75,16 @@
       border-top: none;
     } 
 
+    .tablinks {
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .tablinks.activetab {
+      font-size: 15px;
+      font-weight: bold;
+    }
+
     /* progress bars */
     #myProgress {
       width: 100%;
@@ -419,20 +429,28 @@
       xhttp_def_pl.send();
     }
 
-    function cr_get_dqm_clients_tabe_content( item, playback, element_tabs ){
-      cr_get_dqm_clients( item, playback, function( clients ){
-        let content = "<div id=\'tab " + item + "\' class=\"tabcontent\">";
-        clients_a = eval(clients);
-        clients_a.forEach(function(client, index, array) {
-          let name = "check," + item + "," + client[0];
-          if( Boolean(client[1]) ){
-            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" checked /> <span id=" + name + "> " + client[0] + " </label> <br>";
-          } else {
-            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" /> <span id=" + name + "> " + client[0] + " <br>";
-          };
+    function cr_get_dqm_clients_tabe_content( evt, tab_client_name, item, playback, element_tabs ){
+      element = document.getElementById( "btn fff clients " + item );
+      target = evt.currentTarget
+      if( element.style.color == "" ){
+        element.style.color="red";
+        cr_get_dqm_clients( item, playback, function( clients ){
+          element = document.getElementById( "btn fff clients " + item );
+          element.style.color="";
+          let content = "<div id=\'tab " + item + "\' class=\"tabcontent\">";
+          clients_a = eval(clients);
+          clients_a.forEach(function(client, index, array) {
+            let name = "check," + item + "," + client[0];
+            if( Boolean(client[1]) ){
+              content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" checked /> <span id=" + name + "> " + client[0] + " </label> <br>";
+            } else {
+              content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" /> <span id=" + name + "> " + client[0] + " <br>";
+            };
+          });
+          document.getElementById( element_tabs ).innerHTML += content + "</p> </div>";
+          cr_open_tab(target, tab_client_name);
         });
-        document.getElementById( element_tabs ).innerHTML += content + "</p> </div>";
-      });
+      }
     }
 
     // Get DQM machine list and set some buttons per dqm machine list
@@ -478,8 +496,9 @@
         let text_clients = "<strong>Playback clients:</strong> <br>" ;
         dqm_machines_pl.forEach(function(item, index, array) {
           if( item.charAt(0) == "b" ) return;
-          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
-          cr_get_dqm_clients_tabe_content( item, "1", "clients_playback_tabs" );
+          //text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
+          // cr_get_dqm_clients_tabe_content( item, "1", "clients_playback_tabs" );
+          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_get_dqm_clients_tabe_content(event, \'tab " + item + "\', \'" + item + "\', \'1\', \'clients_playback_tabs\')\">" + item + "</button>";    
         });
 
         document.getElementById("clients_playback").innerHTML = text_clients;
@@ -526,8 +545,9 @@
         let text_clients = "<strong>Production clients:</strong> <br>" ;
         dqm_machines_pr.forEach(function(item, index, array) {
           if( item.charAt(0) == "b" ) return;
-          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
-          cr_get_dqm_clients_tabe_content( item, "0", "clients_production_tabs" );
+          // text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";    
+          //cr_get_dqm_clients_tabe_content( item, "0", "clients_production_tabs" );
+          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_get_dqm_clients_tabe_content(event, \'tab " + item + "\', \'" + item + "\', \'0\', \'clients_production_tabs\')\">" + item + "</button>";    
         });
 
         document.getElementById("clients_production").innerHTML = text_clients;
@@ -597,7 +617,8 @@
       }
     }
 
-  function cr_open_tab(evt, cityName) {
+  // function cr_open_tab(evt, cityName) {
+  function cr_open_tab(target, cityName ) {
     // Declare all variables
     var i, tabcontent, tablinks;
 
@@ -610,14 +631,14 @@
     // Get all elements with class="tablinks" and remove the class "active"
     tablinks = document.getElementsByClassName("tablinks");
     for (i = 0; i < tablinks.length; i++) {
-      tablinks[i].className = tablinks[i].className.replace(" active", "");
-      tablinks[i].style.fontWeight =  '100';
+      tablinks[i].className = tablinks[i].className.replace(" activetab", "");
+      // tablinks[i].style.fontWeight =  '100';
     }
 
     // Show the current tab, and add an "active" class to the button that opened the tab
     document.getElementById(cityName).style.display = "block";
-    evt.currentTarget.className += " active";
-    evt.currentTarget.style.fontWeight =  '700';
+    target.className += " activetab";
+    target.style.fontWeight = '700';
   } 
 
   </script>

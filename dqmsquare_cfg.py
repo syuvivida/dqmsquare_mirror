@@ -1,6 +1,6 @@
 # P.S.~Mandrik, IHEP, https://github.com/pmandrik
 
-import os
+import time, os
 import configparser as ConfigParser
 
 ### default values === >
@@ -20,6 +20,7 @@ cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
 cfg["LOGGER_MAX_N_LOG_FILES"] = 15 # int
 cfg["FIREFOX_RELOAD_NITERS"] = 5000 # 10000 # int ~ twice per week - 24 * 7 * 60 * 60 / 30
 cfg["FFF_SECRET_NAME"] = 'selenium-secret-secret'
+cfg["FFF_PORT"] = '9215'
 
 #cfg["SERVER_LOCAL"] = True
 cfg["SERVER_DEBUG"] = True
@@ -276,7 +277,6 @@ def delete_file( path_to_file, log ):
   log.debug( "delete_file(): remove file %s" % path_to_file )
   return True
 
-import time, os
 def clean_folder(path_to_outfile, threshold, log):
   if log : log.debug( "clean_folder(): remove old files for %s" % path_to_outfile )
   dir_name = os.path.dirname( path_to_outfile )
@@ -311,6 +311,166 @@ def get_cr_usernames(log, secret_name='DQM_CR_USERNAMES'):
     except Exception as error_log:
       log.warning( "get_cr_usernames(): can't split data \"" + pairs + "\"" )
   return answer
+
+### DQM^2 Mirror DB === >
+import sqlite3
+from collections import defaultdict
+class DQM2MirrirDB:
+  TB_NAME = "runs"
+  DESCRIPTION = "(id TEXT PRIMARY KEY NOT NULL, client TEXT, run INT, rev INT, hostname TEXT, exit_code INT, events_total INT, events_rate REAL, cmssw_run INT, cmssw_lumi INT, client_path TEXT, runkey TEXT, fi_state TEXT, timestamp TIMESTAMP, VmRSS TEXT, stdlog_start TEXT, stdlog_end TEXT )"
+  DESCRIPTION_SHORT = "(id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, VmRSS, stdlog_start, stdlog_end )"
+
+  def __init__(self, log, db=None):
+    self.log = log
+    self.log.info("\n\n DQM2MirrirDB ===== init ")
+    self.db_str = db
+
+    if not self.db_str:
+      self.db_str = ":memory:"
+
+    self.conn = sqlite3.connect(self.db_str)
+    self.create_tables()
+
+  def create_tables(self):
+    self.log.debug( "DQM2MirrirDB.create_tables()" )
+    cur = self.conn.cursor()
+    cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME + ' ' + self.DESCRIPTION )
+    self.conn.commit()
+    cur.close()
+
+  def fill(self, header, document):
+    id = header.get("_id")
+    client = header.get("tag", "")
+    run    = header.get("run", -1)
+    rev    = header.get("_rev", -1)
+    hostname = header.get("hostname", "")
+    exit_code = document.get("exit_code", -1)
+    events_total = document.get("events_total", -1)
+    events_rate  = document.get("events_rate", -1)
+    cmssw_run    = document.get("cmssw_run", -1)
+    cmssw_lumi   = document.get("cmssw_lumi", -1)
+    client_path, runkey = "", ""
+    try:
+      client_path  = document.get("cmdline")[1]
+      for item in document.get("cmdline"):
+        if "runkey" in item:
+          runkey = item
+    except: pass
+    fi_state     = document.get("fi_state", "")
+    timestamp    = header.get("timestamp", -1)
+
+    extra = document.get( "extra", {} )
+    ps_info = extra.get( "ps_info", {} )
+    VmRSS        = ps_info.get( "VmRSS", "" )
+    stdlog_start = str(extra.get( "stdlog_start", "" ))
+    stdlog_end   = str(extra.get( "stdlog_end", "" ))
+
+    values = (id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, VmRSS, stdlog_start, stdlog_end )
+    self.log.debug( "DQM2MirrirDB.fill() - " + str(values) )
+    template = "(" + ",".join( [ "?" for x in values ] ) + ")" 
+
+    cur = self.conn.cursor()
+    cur.execute("INSERT OR REPLACE INTO " + self.TB_NAME + " " + self.DESCRIPTION_SHORT + " VALUES " + template, values)
+    self.conn.commit()
+
+  def get(self, run_start, run_end):
+    self.log.debug( "DQM2MirrirDB.get() - " + str(run_start) + " " + str(run_end) )
+    cur = self.conn.cursor()
+    cur.execute("SELECT * FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + ";" )
+    answer = cur.fetchall()
+    self.log.debug( "return " + str(answer) )
+    #print( answer )
+    return answer
+
+  def make_table_entry( self, data ):
+    answer = []
+    # values = (id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp )
+    client    = data[1]
+    run       = data[2]
+    hostname  = data[4]
+    exit_code  = data[5]
+    events_total  = data[6]
+    cmssw_run  = data[8]
+    cmssw_lumi  = data[9]
+    client_path  = data[10]
+    runkey  = data[11]
+    fi_state  = data[12]
+    timestamp = data[13]
+
+    client = self.get_short_client_name( client )
+    var = hostname.split("-")
+    hostname = "..".join( [ var[0], var[-1] ] )
+    runkey = runkey[len("runkey="):]
+
+    cmssw_path = ""
+    subfolders = client_path.split("/")
+    for folder in subfolders:
+      if "CMSSW" in folder : 
+        cmssw_path = folder
+        break
+
+    cmssw_v = cmssw_path.split("CMSSW_")[1]
+
+    answer =  [ run, client, (hostname, events_total, cmssw_lumi, fi_state, exit_code, timestamp), (cmssw_run, runkey, cmssw_v) ]
+    return answer
+
+  def filter_clients(self, name):
+    if not name : return False
+    if name == "__init__" : return False
+    return True
+
+  def get_for_table(self, run_start, run_end):
+    runs = self.get(run_start, run_end)
+    runs_out = [ self.make_table_entry( run ) for run in runs ]
+
+    dic = defaultdict( dict )
+    for run in runs_out :
+      run_number = run[0]
+      client_name = run[1]
+      client_data = run[2]
+      run_data = run[3]
+      run_item = dic[ run_number ]
+      run_item[ "run_data" ] = run_data
+      if "clients" not in run_item : run_item[ "clients" ] = defaultdict( dict )
+      clients_item = run_item[ "clients" ]
+
+      if client_name not in clients_item : clients_item[ client_name ] = [ client_data ]
+      else : clients_item[ client_name ].append( client_data )
+
+    return dict(dic)
+
+  def get_short_client_name(self, client):
+    return client[:-len("_dqm_sourceclient-live")] if "_dqm_sourceclient-live" in client else client
+
+  def get_clients(self, run_start, run_end):
+    self.log.debug( "DQM2MirrirDB.get_clients()" )
+    cur = self.conn.cursor()
+    cur.execute( "SELECT DISTINCT client FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + " ORDER BY client;" )
+    answer = cur.fetchall()
+    answer = [ self.get_short_client_name( name[0] ) for name in answer if self.filter_clients( name[0] ) ]
+    self.log.debug( "return " + str(answer) )
+    return answer
+    
+  def get_info(self):
+    self.log.debug( "DQM2MirrirDB.get_runs_rage()" )
+    cur = self.conn.cursor()
+    cur.execute( "SELECT MIN(run), MAX(run) FROM " + self.TB_NAME + ";" )
+    answer = list(cur.fetchall()[0])
+    self.log.debug( "return " + str(answer) )
+    return answer
+
+  def get_rev(self, machine):
+    if ".cms" in machine : machine = machine[:-len(".cms")]
+    self.log.debug( "DQM2MirrirDB.get_rev()" )
+    cur = self.conn.cursor()
+    cur.execute( "SELECT MAX(rev) FROM " + self.TB_NAME + " WHERE hostname = \"" + str(machine) + "\";" )
+    answer = list(cur.fetchall()[0])
+    self.log.debug( "return " + str(answer) )
+    return answer[0]
+
+
+
+
 
 
 

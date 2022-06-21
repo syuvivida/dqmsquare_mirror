@@ -104,6 +104,38 @@ if __name__ == '__main__':
       return content
 
   if True:
+    ### global variables and auth cookies
+    cr_path = cfg["SERVER_FFF_CR_PATH"]
+    cert_path = [ cfg["SERVER_GRID_CERT_PATH"], cfg["SERVER_GRID_KEY_PATH"] ]
+    selenium_secret = "changeme"
+    env_secret = dqmsquare_cfg.get_env_secret(log, 'DQM_PASSWORD')
+    if env_secret : selenium_secret = env_secret
+    cookies = { str(cfg["FFF_SECRET_NAME"]) : selenium_secret }
+
+    ### DQM^2-MIRROR DB API
+    db = dqmsquare_cfg.DQM2MirrirDB( log, "dqm2m.db" )
+    @route('/api')
+    @route('/dqm/dqm-square-k8/api')
+    def dqm2_api():
+      log.info( bottle.request.urlparts )
+      what = bottle.request.query.what
+
+      ### get data from DQM^2 Mirror
+      if what == "get_runs" :
+        run_from = bottle.request.query.get('from', default=0)
+        run_to   = bottle.request.query.get('to',   default=0)
+        answer =  db.get_for_table( min(run_from, run_to), max(run_from, run_to) )
+        return json.dumps( answer )
+      if what == "get_clients" :
+        run_from = bottle.request.query.get('from', default=0)
+        run_to   = bottle.request.query.get('to',   default=0)
+        answer =  db.get_clients(run_from, run_to)
+        return json.dumps( answer )
+      if what == "get_info" :
+        answer =  db.get_info()
+        return json.dumps( answer )
+
+
     ### HBEAT ###
     @route('/heartbeat')
     @route('/heartbeat/')
@@ -111,6 +143,14 @@ if __name__ == '__main__':
     @route('/dqm/dqm-square-k8/heartbeat/')
     def get_static(name='Stranger'):
       return static_file("dqm_heartbeat.html", root='./static/')
+
+    ### TIMELINE ###
+    @route('/timeline')
+    @route('/timeline/')
+    @route('/dqm/dqm-square-k8/timeline')
+    @route('/dqm/dqm-square-k8/timeline/')
+    def get_static(name='Stranger'):
+      return static_file("dqm_timeline.html", root='./static/')
 
     ### CR ###
     cr_usernames      = dqmsquare_cfg.get_cr_usernames(log, "DQM_CR_USERNAMES")
@@ -193,13 +233,26 @@ if __name__ == '__main__':
             </form>
         '''
 
+    ### FFF API around SQL DB is websocket based, we need to define event in message and send it
+    ### API is simple - we can get only 1000 headers with clients ids and documents per client ids
+    ### headers == clients basic info
+    ### documents == clients logs and other information
+    def get_documents_from_fff( dqm_machine, dqm_port=cfg["FFF_PORT"], runs_ids=[] ) :
+      url = cfg["SERVER_FFF_CR_PATH"] + '/redirect?path=' + dqm_machine + '&port=' + str(dqm_port);
+      jsn = { "event" : "request_documents", "ids" : runs_ids }
+      data = json.dumps( { "messages" : [ json.dumps(jsn) ]  } )
+      r = requests.post(url, data=data, cert=cert_path, verify=False, headers = {}, cookies=cookies, timeout=5)
+      return r.content
+
+    def get_headers_from_fff( dqm_machine, dqm_port=cfg["FFF_PORT"], revision=0 ) :
+      url = cfg["SERVER_FFF_CR_PATH"] + '/redirect?path=' + dqm_machine + '&port=' + str(dqm_port);
+      jsn = { "event" : "sync_request", "known_rev" : str(revision) }
+      data = json.dumps( { "messages" : [ json.dumps(jsn) ]  } )
+      print( data )
+      r = requests.post(url, data=data, cert=cert_path, verify=False, headers = {}, cookies=cookies, timeout=5)
+      return r.content
+
     # DQM & FFF & HLTD
-    cr_path = cfg["SERVER_FFF_CR_PATH"]
-    cert_path = [ cfg["SERVER_GRID_CERT_PATH"], cfg["SERVER_GRID_KEY_PATH"] ]
-    selenium_secret = "changeme"
-    env_secret = dqmsquare_cfg.get_env_secret(log, 'DQM_PASSWORD')
-    if env_secret : selenium_secret = env_secret
-    cookies = { str(cfg["FFF_SECRET_NAME"]) : selenium_secret }
     @route('/cr/exe')
     @route('/dqm/dqm-square-k8/cr/exe') # http://0.0.0.0:8887/dqm/dqm-square-k8/cr/exe?what=get_dqm_machines&
     @check_auth(False)
@@ -209,6 +262,47 @@ if __name__ == '__main__':
 
       #if what in ["get_dqm_clients", "change_dqm_client"] :
       #  return json.dumps( '[["a.py",0], ["b.py",1], ["c.py",0]]' )
+
+      ### get data from DQM^2
+      # from DQM^2 DB
+      try:
+        if what == "get_documents" :
+          host = bottle.request.query.get('host', default="")
+          run_id = bottle.request.query.get('run_id', default="")
+          return get_documents_from_fff(host, runs_ids = [ run_id ] )
+        elif what == "get_headers" :
+          host = bottle.request.query.get('host', default="")
+          rev = bottle.request.query.get('rev', default=0)
+          return get_headers_from_fff(host, revision = rev )
+        elif what == "update_db" :
+          host = "fu-c2f11-15-02.cms"
+          while True :
+            rev = db.get_rev( host );
+            print( "\n\n NEW ITER, UPDATE REVISION ", rev )
+            if not rev : rev = 0
+
+            headers_answer = get_headers_from_fff(host, revision = rev )
+            headers_answer = json.loads( json.loads(headers_answer)['messages'][0] )
+            headers = headers_answer['headers']
+            rev = headers_answer['rev']
+
+            if not len(headers) : break
+
+            for header in headers :
+              id = header["_id"]
+              print("header ", id)
+              document_answer = get_documents_from_fff(host, runs_ids = [ id ] )
+              document = json.loads( json.loads(document_answer)['messages'][0] )["documents"][0]
+              # print( document )
+              db.fill( header, document )
+              break
+
+            break
+
+      except Exception as error_log:
+        bottle.response.status = 400
+        log.warning( "cr_exe().get_documents(): " + repr(error_log) )
+        return repr(error_log)
 
       ### get data from DQM^2 Mirror
       if what == "get_simulator_run_keys" :
@@ -220,7 +314,7 @@ if __name__ == '__main__':
           log.warning( error_log )
           return repr(error_log)
 
-      ### get data from DQM^2
+      # using exe API
       # initial request
       url = cr_path + "/cr/exe?" + bottle.request.urlparts.query
       answer = None
