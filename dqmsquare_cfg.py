@@ -2,6 +2,7 @@
 
 import time, os
 import configparser as ConfigParser
+import datetime
 
 ### default values === >
 cfg = {}
@@ -17,24 +18,29 @@ cfg["TMP_FILES_LIFETIME"] = 24 * 30 # h, int
 cfg["TMP_CLEAN_FILES"] = True
 cfg["TMP_FOLDER_TO_CLEAN"] = "tmp"
 cfg["LOGGER_ROTATION_TIME"] = 24 #h, int
-cfg["LOGGER_MAX_N_LOG_FILES"] = 15 # int
+cfg["LOGGER_MAX_N_LOG_FILES"] = 10 # int
 cfg["FIREFOX_RELOAD_NITERS"] = 5000 # 10000 # int ~ twice per week - 24 * 7 * 60 * 60 / 30
 cfg["FFF_SECRET_NAME"] = 'selenium-secret-secret'
 cfg["FFF_PORT"] = '9215'
 
 #cfg["SERVER_LOCAL"] = True
-cfg["SERVER_DEBUG"] = True
+cfg["SERVER_DEBUG"] = False
 cfg["SERVER_K8"]    = False
 cfg["SERVER_HOST"]  = '0.0.0.0'
 cfg["SERVER_PORT"]  = 8887
+# old from selenium parcer
 cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = "tmp/content_parser_production"
 cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "tmp/content_parser_playback"
+# new directly from DB
+cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = "api?what=get_production"
+cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = "api?what=get_playback"
 cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/server.log"
 cfg["SERVER_DATA_PATH"]               = "/"
 cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
-cfg["SERVER_GRID_CERT_PATH"]          = "/home/pmandrik/CERT_TEST/np/usercert.pem"
-cfg["SERVER_GRID_KEY_PATH"]           = "/home/pmandrik/CERT_TEST/np/userkey.pem"
+cfg["SERVER_FFF_MACHINE"]             = "bu-c2f11-13-01"
+cfg["SERVER_GRID_CERT_PATH"]          = "/home/pmandrik/CERT_TEST/np2/usercert.pem"
+cfg["SERVER_GRID_KEY_PATH"]           = "/home/pmandrik/CERT_TEST/np2/userkey.pem"
 cfg["SERVER_SIMULATOR_RUN_KEYS"]      = "cosmic_run,pp_run,commisioning_run"
 cfg["SERVER_LINK_PREFIX"]             = ""
 
@@ -51,7 +57,7 @@ cfg["PARSER_LINK_PREFIX"]  = ""
 
 cfg["ROBBER_BACKEND"] = "selenium"
 cfg["ROBBER_GECKODRIVER_PATH"] = "geckodriver/geckodriver"
-cfg["ROBBER_DEBUG"] = True
+cfg["ROBBER_DEBUG"] = False
 cfg["ROBBER_GRAB_LOGS"] = True
 cfg["ROBBER_GRAB_GRAPHS"] = True
 cfg["ROBBER_GRAB_OLDRUNS"] = True
@@ -69,10 +75,18 @@ cfg["ROBBER_K8_LOGIN_PAGE"] = ""
 cfg["ROBBER_FIREFOX_PATH"] = ""
 cfg["ROBBER_FIREFOX_PROFILE_PATH"] = ""
 
+cfg["GRABBER_LOG_PATH"] = "log/grabber.log"
+cfg["GRABBER_DEBUG"] = False
+cfg["GRABBER_DB_PLAYBACK_PATH"]   = "sqlite:///../dqm2m.db?check_same_thread=False"
+cfg["GRABBER_DB_PRODUCTION_PATH"] = "sqlite:///../dqm2m_production.db?check_same_thread=False"
+
 def set_k8_options(testbed = False):
   global cfg
 
-  mount_path = "/cephfs/testbed/dqmsquare_mirror/"
+  mount_path_cephfs = "/cephfs/testbed/dqmsquare_mirror/"
+  mount_path_cinder = "/cinder/dqmsquare/"
+  mount_path = mount_path_cinder
+
   cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
   cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] = mount_path[1:] + cfg["SERVER_PATH_TO_PRODUCTION_PAGE"] 
   cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]   = mount_path[1:] + cfg["SERVER_PATH_TO_PLAYBACK_PAGE"]
@@ -100,6 +114,9 @@ def set_k8_options(testbed = False):
   cfg["ROBBER_FIREFOX_PROFILE_PATH"] = "/firefox_profile_path"
   cfg["ROBBER_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
   cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+
+  cfg["GRABBER_DB_PLAYBACK_PATH"]   = "postgresql:///postgres"
+  cfg["GRABBER_DB_PRODUCTION_PATH"] = "postgresql:///postgres_production"
 
   if not testbed : 
     cfg["SERVER_FFF_CR_PATH"]   = "https://cmsweb.cern.ch/dqm/dqm-square-origin"
@@ -309,35 +326,102 @@ def get_cr_usernames(log, secret_name='DQM_CR_USERNAMES'):
       username, password = pairs.split(":")
       answer[ username ] = password
     except Exception as error_log:
-      log.warning( "get_cr_usernames(): can't split data \"" + pairs + "\"" )
+      log.warning( "get_cr_usernames(): can't split data '" + pairs + "'" )
   return answer
 
 ### DQM^2 Mirror DB === >
 import sqlite3
+import sqlalchemy
 from collections import defaultdict
-class DQM2MirrirDB:
+class DQM2MirrorDB:
   TB_NAME = "runs"
-  DESCRIPTION = "(id TEXT PRIMARY KEY NOT NULL, client TEXT, run INT, rev INT, hostname TEXT, exit_code INT, events_total INT, events_rate REAL, cmssw_run INT, cmssw_lumi INT, client_path TEXT, runkey TEXT, fi_state TEXT, timestamp TIMESTAMP, VmRSS TEXT, stdlog_start TEXT, stdlog_end TEXT )"
-  DESCRIPTION_SHORT = "(id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, VmRSS, stdlog_start, stdlog_end )"
+  DESCRIPTION = "( id TEXT PRIMARY KEY NOT NULL, client TEXT, run INT, rev INT, hostname TEXT, exit_code INT, events_total INT, events_rate REAL, cmssw_run INT, cmssw_lumi INT, client_path TEXT, runkey TEXT, fi_state TEXT, timestamp TIMESTAMP, vmrss TEXT, stdlog_start TEXT, stdlog_end TEXT )"
+  DESCRIPTION_SHORT = "id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, vmrss, stdlog_start, stdlog_end".replace(" ", "").split(",")
 
-  def __init__(self, log, db=None):
+  TB_NAME_GRAPHS = "graphs"
+  DESCRIPTION_GRAPHS = "( run INT PRIMARY KEY NOT NULL, rev INT, id TEXT, timestamp TIMESTAMP, global_start TIMESTAMP, stream_data TEXT, hostname TEXT )"
+  DESCRIPTION_SHORT_GRAPHS = "run, rev, id, timestamp, global_start, stream_data, hostname".replace(" ", "").split(",")
+
+  TB_NAME_META = "meta"
+  DESCRIPTION_META = "( name TEXT PRIMARY KEY NOT NULL, data TEXT )"
+  DESCRIPTION_SHORT_META = "( name, data )"
+
+  def __init__(self, log, db=None, server=False):
     self.log = log
-    self.log.info("\n\n DQM2MirrirDB ===== init ")
+    self.log.info("\n\n DQM2MirrorDB ===== init ")
     self.db_str = db
 
     if not self.db_str:
       self.db_str = ":memory:"
 
-    self.conn = sqlite3.connect(self.db_str)
-    self.create_tables()
+    self.engine = sqlalchemy.create_engine(self.db_str, poolclass=sqlalchemy.pool.QueuePool, pool_size=20, max_overflow=0)
+    if not server : self.create_tables();
+    self.db_meta = sqlalchemy.MetaData(bind=self.engine)
+    self.db_meta.reflect()
+
+    from sqlalchemy.orm import sessionmaker
+    self.Session = sessionmaker( bind=self.engine )
 
   def create_tables(self):
-    self.log.debug( "DQM2MirrirDB.create_tables()" )
-    cur = self.conn.cursor()
-    cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME + ' ' + self.DESCRIPTION )
-    self.conn.commit()
-    cur.close()
+    self.log.debug( "DQM2MirrorDB.create_tables()" )
+    with self.engine.connect() as cur:
+      cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME + ' ' + self.DESCRIPTION )
+      cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME_GRAPHS + ' ' + self.DESCRIPTION_GRAPHS )
+      cur.execute( "DROP TABLE IF EXISTS " + self.TB_NAME_META )
+      cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME_META + ' ' + self.DESCRIPTION_META )
 
+  ### fill table with graph data
+  def fill_graph(self, header, document):
+    extra = document.get("extra", None)
+    if not extra : return
+
+    id  = header.get("_id")
+    run = header.get("run", None)
+    if not run :
+      self.log.warning("\n\n DQM2MirrorDB.fill_graph(): no 'run' for header id '%s'" % (id) )
+      return
+
+    rev          = header.get("_rev", -1)
+    timestamp    = extra.get("timestamp", -1)
+    global_start = extra.get("global_start", -1)
+    stream_data  = str(extra.get("streams", ""))
+    hostname     = header.get("hostname", "")
+
+    values = [ run, rev, id, timestamp, global_start, stream_data, hostname ]
+    values_dic = {}
+    for val, name in zip( values, self.DESCRIPTION_SHORT_GRAPHS):
+      values_dic[ name ] = val
+
+    with self.engine.connect() as cur:
+      session = self.Session(bind=cur)
+      try:
+        # cur.execute("INSERT OR REPLACE INTO " + self.TB_NAME_GRAPHS + " " + self.DESCRIPTION_SHORT_GRAPHS + " VALUES " + template, values)
+        session.execute("DELETE FROM " + self.TB_NAME_GRAPHS + " WHERE id = '" + str(id) + "'" )
+        # cur.execute("INSERT INTO " + self.TB_NAME_GRAPHS + " " + self.DESCRIPTION_SHORT_GRAPHS + " VALUES " + template % values )
+        # cur.execute( sqlalchemy.insert( self.TB_NAME_GRAPHS ).values( values_dic )
+        session.execute( sqlalchemy.insert( self.db_meta.tables[ self.TB_NAME_GRAPHS ] ).values( values_dic ) )
+        session.commit()
+      except sqlite3.IntegrityError as e:
+        self.log.error("Error occurred: ", e)
+        session.rollback()
+        return 1
+
+    return 0
+
+
+
+  def get_graphs_data(self, run):
+    self.log.debug( "DQM2MirrorDB.get_graphs_data() - " + str(run) )
+    with self.engine.connect() as cur:
+      answer = cur.execute("SELECT * FROM " + self.TB_NAME_GRAPHS + " WHERE CAST(run as INTEGER) = " + str(run) + ";" ).all()
+    if not len( answer ) : return "[]"
+    # print( answer )
+    answer = list( answer[0] )
+    answer[-2] = eval( answer[-2] )
+    # print( answer )
+    return answer
+
+  ### fill 'runs' table with clients data
   def fill(self, header, document):
     id = header.get("_id")
     client = header.get("tag", "")
@@ -366,20 +450,88 @@ class DQM2MirrirDB:
     stdlog_end   = str(extra.get( "stdlog_end", "" ))
 
     values = (id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, VmRSS, stdlog_start, stdlog_end )
-    self.log.debug( "DQM2MirrirDB.fill() - " + str(values) )
-    template = "(" + ",".join( [ "?" for x in values ] ) + ")" 
+    self.log.debug( "DQM2MirrorDB.fill() - " + str(values) )
+    values_dic = {}
+    for val, name in zip( values, self.DESCRIPTION_SHORT ):
+      values_dic[ name ] = val
 
-    cur = self.conn.cursor()
-    cur.execute("INSERT OR REPLACE INTO " + self.TB_NAME + " " + self.DESCRIPTION_SHORT + " VALUES " + template, values)
-    self.conn.commit()
+    with self.engine.connect() as cur:
+      session = self.Session(bind=cur)
+      try:
+        # cur.execute("INSERT OR REPLACE INTO " + self.TB_NAME + " " + self.DESCRIPTION_SHORT + " VALUES " + template, values)
+        session.execute("DELETE FROM " + self.TB_NAME + " WHERE id = '" + str(id) + "'" )
+        session.execute( sqlalchemy.insert( self.db_meta.tables[ self.TB_NAME ] ).values( values_dic ) )
+        session.commit()
+      except sqlite3.IntegrityError as e:
+        self.log.error("Error occurred: ", e)
+        session.rollback()
+        return 1
 
+    ### 
+    if not run : return 0
+    old_min_max = [999999999, -1]
+    with self.engine.connect() as cur:
+      answer = cur.execute( "SELECT data FROM " + self.TB_NAME_META + " WHERE name = 'min_max_runs';" ).all()
+      if answer : old_min_max = eval(answer[0][0])
+      else :
+        answer = cur.execute( "SELECT MIN(run), MAX(run) FROM " + self.TB_NAME + ";" ).all()
+        if answer : 
+          old_min_max = answer[0]
+
+    # print( old_min_max )
+    new_min = min( int(run), old_min_max[0] )
+    new_max = max( int(run), old_min_max[1] )
+    if new_min != old_min_max[0] or new_max != old_min_max[1] :
+      self.update_min_max( new_min, new_max )
+
+    return 0
+
+  ### get data from 'runs' table with clients data
   def get(self, run_start, run_end):
-    self.log.debug( "DQM2MirrirDB.get() - " + str(run_start) + " " + str(run_end) )
-    cur = self.conn.cursor()
-    cur.execute("SELECT * FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + ";" )
-    answer = cur.fetchall()
-    self.log.debug( "return " + str(answer) )
+    self.log.debug( "DQM2MirrorDB.get() - " + str(run_start) + " " + str(run_end) )
+    with self.engine.connect() as cur:
+      answer = cur.execute("SELECT * FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + ";" ).all()
+    #self.log.debug( "return " + str(answer) )
     #print( answer )
+    return answer
+
+  def make_mirror_entry( self, data ):
+    answer = []
+    # values = (id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, VmRSS, stdlog_start, stdlog_end )
+    id = data[0]
+    client    = data[1]
+    hostname  = data[4]
+    exit_code  = data[5]
+    events_total  = data[6]
+    cmssw_lumi  = data[9]
+    client_path  = data[10]
+    runkey  = data[11]
+    fi_state  = data[12]
+    timestamp = data[13]
+    VmRSS     = data[14]
+
+    client = self.get_short_client_name( client )
+    var = hostname.split("-")
+    hostname = "..".join( [ var[0], var[-1] ] )
+    td = int(time.time() - timestamp)
+    days = td / (60 * 60 * 24)
+    hours = td / (60 * 60) % 24 
+    minutes = (td / 60) %  60
+    seconds = td % 60
+    td = "%02d:%02d" % (minutes, seconds)
+    if hours : td = "%02d:"%(hours) + td
+    if days  : td = "%d days "%(days)  + td
+
+    cmssw_path = ""
+    subfolders = client_path.split("/")
+    for folder in subfolders:
+      if "CMSSW" in folder : 
+        cmssw_path = folder
+        break
+    cmssw_v = cmssw_path.split("CMSSW_")[1]
+    runkey = runkey[len("runkey="):]
+
+    answer =  [ (timestamp, td, hostname, exit_code, client, cmssw_lumi, VmRSS, events_total, id), (cmssw_v, runkey) ]
     return answer
 
   def make_table_entry( self, data ):
@@ -419,7 +571,14 @@ class DQM2MirrirDB:
     if name == "__init__" : return False
     return True
 
-  def get_for_table(self, run_start, run_end):
+  def get_mirror_data(self, run_number):
+    runs = self.get(run_number, run_number)
+    runs_out = [ self.make_mirror_entry( run ) for run in runs ]
+    clients_data = [ run[ 0 ] for run in runs_out ]
+    global_data  = runs_out[0][1] if runs_out else [] 
+    return global_data, clients_data
+
+  def get_timeline_data(self, run_start, run_end):
     runs = self.get(run_start, run_end)
     runs_out = [ self.make_table_entry( run ) for run in runs ]
 
@@ -443,32 +602,75 @@ class DQM2MirrirDB:
     return client[:-len("_dqm_sourceclient-live")] if "_dqm_sourceclient-live" in client else client
 
   def get_clients(self, run_start, run_end):
-    self.log.debug( "DQM2MirrirDB.get_clients()" )
-    cur = self.conn.cursor()
-    cur.execute( "SELECT DISTINCT client FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + " ORDER BY client;" )
-    answer = cur.fetchall()
+    self.log.debug( "DQM2MirrorDB.get_clients()" )
+    with self.engine.connect() as cur:
+      answer = cur.execute( "SELECT DISTINCT client FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + " ORDER BY client;" ).all()
     answer = [ self.get_short_client_name( name[0] ) for name in answer if self.filter_clients( name[0] ) ]
-    self.log.debug( "return " + str(answer) )
+    #self.log.debug( "return " + str(answer) )
     return answer
+
+  # update metadata table with info about min and max run number in runs table for fast fetch
+  def update_min_max( self, new_min, new_max ):
+    with self.engine.connect() as cur:
+      session = self.Session(bind=cur)
+      try:
+        # cur.execute("INSERT OR REPLACE INTO " + self.TB_NAME_META + " " + self.DESCRIPTION_SHORT_META + " VALUES('min_max_runs', '[" + str(new_min) + "," + str(new_max) + "]')" )
+        session.execute("DELETE FROM " + self.TB_NAME_META + " WHERE name = 'min_max_runs'" )
+        session.execute("INSERT " + self.TB_NAME_META + " " + self.DESCRIPTION_SHORT_META + " VALUES('min_max_runs', '[" + str(new_min) + "," + str(new_max) + "]')" )
+        session.commit()
+      except sqlite3.IntegrityError as e:
+        self.log.error("Error occurred: ", e)
+        session.rollback()
+        return 1
+    return 0
     
   def get_info(self):
-    self.log.debug( "DQM2MirrirDB.get_runs_rage()" )
-    cur = self.conn.cursor()
-    cur.execute( "SELECT MIN(run), MAX(run) FROM " + self.TB_NAME + ";" )
-    answer = list(cur.fetchall()[0])
-    self.log.debug( "return " + str(answer) )
+    self.log.debug( "DQM2MirrorDB.get_info()" )
+
+    with self.engine.connect() as cur:
+      answer = cur.execute( "SELECT data FROM " + self.TB_NAME_META + " WHERE name = 'min_max_runs';" ).all()
+
+      if answer :
+        return list(answer)
+
+      answer = cur.execute( "SELECT MIN(run), MAX(run) FROM " + self.TB_NAME + ";" ).all()
+      if not answer : return [-1, -1]
+
+    answer = list(answer[0])
+    # self.update_min_max( answer[0], answer[1] )
+
     return answer
 
+  # get latest rev from given dqm machine
   def get_rev(self, machine):
+    self.log.debug( "DQM2MirrorDB.get_rev()" )
     if ".cms" in machine : machine = machine[:-len(".cms")]
-    self.log.debug( "DQM2MirrirDB.get_rev()" )
-    cur = self.conn.cursor()
-    cur.execute( "SELECT MAX(rev) FROM " + self.TB_NAME + " WHERE hostname = \"" + str(machine) + "\";" )
-    answer = list(cur.fetchall()[0])
-    self.log.debug( "return " + str(answer) )
-    return answer[0]
 
+    with self.engine.connect() as cur:
+      if "fu" in machine :
+        answer = cur.execute( "SELECT MAX(rev) FROM " + self.TB_NAME + " WHERE hostname = '" + str(machine) + "';" ).all()
+        answer = list( answer[0] )
+        #self.log.debug( "return " + str(answer) )
+        return answer[0]
+      else : 
+        answer = cur.execute( "SELECT MAX(rev) FROM " + self.TB_NAME_GRAPHS + " WHERE hostname = '" + str(machine) + "';" ).all()
+        answer = list( answer[0] )
+        #self.log.debug( "return " + str(answer) )
+        return answer[0]
 
+  def get_logs(self, client_id):
+    self.log.debug( "DQM2MirrorDB.get_logs()" )
+    with self.engine.connect() as cur:
+      answer = cur.execute( "SELECT stdlog_start, stdlog_end FROM " + self.TB_NAME + " WHERE id = '" + str(client_id) + "';" ).all()
+    return answer
+
+  # get next run and prev run
+  def get_runs_arounds(self, run):
+    self.log.debug( "DQM2MirrorDB.get_runs_arounds()" )
+    with self.engine.connect() as cur:
+      answer = cur.execute( "SELECT min(run) from " + self.TB_NAME + " where run > " + str(run) + " union SELECT max(run) FROM " + self.TB_NAME + " WHERE run < " + str(run) + ";" ).all()
+      answer = [ item[0] for item in answer ]
+    return answer
 
 
 

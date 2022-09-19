@@ -67,7 +67,6 @@ class DQMPageData( ):
 
   def AddJobLogs( self, logs ):
     self.jobs_logs[-1] += logs
-    self.jobs[-1][-1] = "->"
 
     name, link = self.GetJoblogFileName( len(self.jobs)-1 )
     self.jobs[-1][-1] = '<a href="'+link+'" target="_blank"> -> </a>'

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="/static/dqm_style.css">
+  <link rel="stylesheet" href="/dqm/dqm-square-k8/static/dqm_style.css">
 </head>
 <body onload="">
   <div class="title">
@@ -11,6 +11,11 @@
   &#x25A0; Timeline 
   </div>
 <br>
+  <div>
+  <a href="/dqm/dqm-square-k8/timeline/?db=production">Production-></a> 
+  <a href="/dqm/dqm-square-k8/timeline/?db=playback">Playback-></a>
+  </div><br>
+
   <label>Runs range:</label>
   <input type="number" id="runMin" min="0" max="0" onchange="update_runs_range(this.id, this.value, -1)">
   <input type="number" id="runMax" min="0" max="0" onchange="update_runs_range(this.id, -1, this.value)">
@@ -19,11 +24,14 @@
     <div id="timelineProgress">
       <div id="timelineBar"></div>
     </div>
-  <table id="runTable" style="text-align:center;margin-top:10px;margin-bottom:10px;font-size: 14px;" border=1 frame=hsides rules=rows >
-  </table>
+  <table id="runTable" style="text-align:center;margin-top:1px;margin-bottom:10px" border=1 frame=hsides rules=rows ></table>
 
-  <script src="/static/canvasslider.js"></script>
+  <script src="/dqm/dqm-square-k8/static/canvasslider.js"></script>
   <script>
+    const url_param = new URLSearchParams( window.location.search );
+    let db = url_param.get('db');
+    if( !db || db == "" ) db = "production";
+
     const PREFIX = "/dqm/dqm-square-k8";
     var static_headers = ["Run", "RunKey", "CMSSW"];
     var dqm_clients = [];
@@ -49,10 +57,12 @@
       if( id != "runMin" && min_val != -1 ){
         let runMin = document.getElementById("runMin");
         runMin.value = min_val;
+        mySlider.setValue(0, min_val);
       }
       if( id != "runMax" && max_val != -1 ){
         let runMin = document.getElementById("runMax");
         runMin.value = max_val;
+        mySlider.setValue(1, max_val);
       }
       if( id != "runRangeSlider" ){
         if( min_val != -1 ) mySlider.setValue(0, min_val);
@@ -62,19 +72,28 @@
 
     function add_table_header( static_headers, clients ) {
       let tb_main = document.getElementById("runTable");
+      tb_main.innerHTML = '';
+
       for(let j = 0; j < static_headers.length + clients.length; ++j) {
-        let col = document.createElement("col")
-        tb_main.appendChild(col)
+        let col = document.createElement("col");
+        tb_main.appendChild(col);
       }
 
-      let tr = document.createElement("tr")
+      let tr = document.createElement("tr");
       for(let client of static_headers) {
-        td = document.createElement("th")
-        td.innerText = client
-        td.className = "tb_header"
-        tr.appendChild(td)
+        let td = document.createElement("th");
+        td.innerText = client;
+        td.className = "tb_header";
+        tr.appendChild(td);
       }
-      tb_main.appendChild(tr)
+      for(let client of clients) {
+        let td = document.createElement("th")
+        td.innerText = client;
+        td.className = "tb_header";
+        tr.appendChild(td);
+      }
+
+      tb_main.appendChild(tr);
     }
 
     function wrap_events_number( labelValue ){
@@ -91,25 +110,38 @@
     }
 
     function add_table_line(run, run_data, clients_data) {
-      console.log(run, run_data, clients);
+      // console.log(run, run_data, clients);
       let tb_main = document.getElementById("runTable");
 
       let tr = document.createElement("tr");
       let td = document.createElement("td");
-      //let lnk = document.createElement("a")
-      //lnk.href = `/run?id=${data.runs[i]}`
-      //lnk.innerText = run
       if( run_data[0] != run ){
         let div = document.createElement("div");
         div.className = "ttip";
-        div.innerText = run;
+        // div.innerHTML = run;
+
+        let lnk = document.createElement("a")
+        lnk.href = PREFIX + "/?run=" + run + "&db=" + db;
+        lnk.innerText = run;
+        lnk.target = target="\"_blank\"";
+        div.appendChild(lnk);
+        
         let span = document.createElement("span");
         span.className = "ttext";
         span.innerText = run_data[0];
         div.appendChild(span);
         td.appendChild(div);
       } else {
-        
+        let div = document.createElement("div");
+        div.className = "ttip";
+
+        let lnk = document.createElement("a")
+        lnk.href = PREFIX + "/?run=" + run + "&db=" + db;
+        lnk.innerText = run;
+        lnk.target = target="\"_blank\"";
+        div.appendChild(lnk);
+
+        td.appendChild(div);
       }
       tr.appendChild(td)
 
@@ -137,21 +169,21 @@
           let r_runs = 0;
           let let_max_events = -1;
           let machine = client_data[0][0];
-          let span_text = "<div>" + client_name + " / "+ machine + "<br>";
+          let span_text = "<div><b>" + client_name + "</b> / "+ machine + "<br>";
           let table_text = "";
 
           for(let jj = 0; jj < client_data.length; ++jj) {
             let ec = client_data[jj][4];
-            if( (ec === null) || (ec === undefined) ) { g_runs += 1; }
+            if( (ec === -1) || (ec === null) || (ec === undefined) ) { g_runs += 1; }
             else if ((ec === 0) || (ec === "0")) { y_runs += 1; }
             else { r_runs += 1; }
 
             let_max_events = Math.max(let_max_events, client_data[jj][1]);
             let date = new Date( client_data[jj][5]*1000 ).toLocaleString('en-US', {hour12: false, timeZone:'Europe/Zurich'});
-            span_text += date + " ";
-            span_text += client_data[jj][1] + " events " ;
-            span_text += client_data[jj][2] + " lumis " ;
-            span_text += client_data[jj][4] + " exit code " ;
+            span_text += date + ", ";
+            span_text += client_data[jj][1] + " events, " ;
+            span_text += client_data[jj][2] + " lumis, " ;
+            span_text += client_data[jj][4] + " exit code" ;
             span_text += "<br>";
           }
           span_text += "</div>"
@@ -196,7 +228,7 @@
 
           let div = document.createElement("div");
           div.className = "ttip";
-          div.innerText = "-------";
+          div.innerText = "------";
           let span = document.createElement("div");
           span.className = "ttext";
           span.innerText = client_name;
@@ -209,12 +241,12 @@
     }
 
     var xhttp_info = new XMLHttpRequest();
-    xhttp_info.open("GET", PREFIX+"/api?what=get_info", true);
+    xhttp_info.open("GET", PREFIX+"/api?what=get_info" + "&db=" + db, true);
     xhttp_info.send();
     xhttp_info.onreadystatechange = function() {
       if (this.readyState == 4 && this.status != 200) { }
       if (this.readyState == 4 && this.status == 200) {
-        console.log( xhttp_info.responseText );
+        // console.log( xhttp_info.responseText );
         dqm_range = JSON.parse(xhttp_info.responseText);
 
         let runMin = document.getElementById("runMin");
@@ -246,6 +278,10 @@
           let maval = -1;
           if( i === 0 ) mival = val | 0;
           else          maval = val | 0;
+
+          //mival = mySlider.getValue(0, min_val);
+          //maval = mySlider.getValue(1, max_val);
+
           update_runs_range("runRangeSlider", mival, maval);
         };
       }
@@ -254,15 +290,14 @@
     function update_table_range(runMin, runMax, step){
       let iMin = Math.max(runMax - step, runMin);
       let xhttp_def_pr = new XMLHttpRequest();
-      xhttp_def_pr.open("GET", PREFIX+"/api?what=get_runs&from=" + iMin + "&to=" + runMax, true);
+      xhttp_def_pr.open("GET", PREFIX+"/api?what=get_runs&from=" + iMin + "&to=" + runMax + "&db=" + db, true);
       xhttp_def_pr.send();
       xhttp_def_pr.onreadystatechange = function() {
         if (this.readyState == 4 && this.status != 200) { }
         if (this.readyState == 4 && this.status == 200) {
-          xhttp_def_pr.responseText;
           var table_data = JSON.parse(xhttp_def_pr.responseText);
           for( const [ key, value ] of Object.entries(table_data).reverse() ) {
-            console.log( key );
+            // console.log( key );
             clients  = value["clients"];
             run_data = value["run_data"];
             add_table_line(key, run_data, clients);
@@ -274,7 +309,7 @@
     }
 
     function update_table(){
-      console.log( "---------" );
+      // console.log( "---------" );
       const tb_main = document.getElementById("runTable");
       tb_main.innerHTML = '';
 
@@ -284,16 +319,16 @@
       let step = 100;
 
       var xhttp_start = new XMLHttpRequest();
-      xhttp_start.open("GET", PREFIX+"/api?what=get_clients&from=" + runMin + "&to=" + runMax, true);
+      xhttp_start.open("GET", PREFIX+"/api?what=get_clients&from=" + runMin + "&to=" + runMax + "&db=" + db, true);
       xhttp_start.send();
       xhttp_start.onreadystatechange = function() {
         if (this.readyState == 4 && this.status != 200) { }
         if (this.readyState == 4 && this.status == 200) {
           dqm_clients = JSON.parse(xhttp_start.responseText);
           add_table_header( static_headers, dqm_clients );
+          updateBar(false, runMax - runMin);
+          update_table_range( runMin, runMax, step );
         }
-        updateBar(false, runMax - runMin);
-        update_table_range( runMin, runMax, step );
       }
     }
 
