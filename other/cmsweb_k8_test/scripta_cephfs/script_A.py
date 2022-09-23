@@ -8,7 +8,7 @@ try:
   folder = str(sys.argv[1])
 except: pass
 
-print "Output:", folder
+print("Output:", folder)
 
 N_file = 0
 while True:
@@ -16,7 +16,7 @@ while True:
   if len(files) > 10:
     time.sleep(10)
     continue
-  print "Iter # ", N_file
+  print("Iter # ", N_file)
   f = open( folder + "test" + str(N_file) + ".txt" , "w")
   f.write('This is a test # ' + str(N_file) + '\n')
   N_file += 1;

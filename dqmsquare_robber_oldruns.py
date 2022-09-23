@@ -113,7 +113,7 @@ if __name__ == '__main__':
       if bool( cfg["ROBBER_GRAB_GRAPHS"] ):
         if delete_old_canvases : 
           # remove outdate canvases to not show accidentally
-          for j in xrange(9): # any big number
+          for j in range(9): # any big number
             opath_canv = dqmsquare_cfg.get_TMP_robber_canvas_name(save_prefix, str(j))
             dqmsquare_cfg.delete_file( opath_canv, log )
 
