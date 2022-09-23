@@ -151,9 +151,15 @@
 
     // some direct and helping functions
     function update_oms_link( run_key ){
-      run = run_key.slice(3)
-      document.getElementById("oms_link").href="https://cmsoms.cern.ch/cms/runs/report?cms_run=" + run + "&cms_run_sequence=GLOBAL-RUN";
-      document.getElementById("oms_link").textContent = "OMS link run" + run;
+      result = run_key.match( /\d\d\d\d\d\d/ );
+      if( result ){
+        var run = result[0];
+        document.getElementById("oms_link").href="https://cmsoms.cern.ch/cms/runs/report?cms_run=" + run + "&cms_run_sequence=GLOBAL-RUN";
+        document.getElementById("oms_link").textContent = "OMS link run " + run;
+      } else {
+        document.getElementById("oms_link").href="";
+        document.getElementById("oms_link").textContent = "";
+      }
     }
 
     function removeOptions(selectElement) {

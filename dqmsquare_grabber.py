@@ -50,10 +50,12 @@ if __name__ == '__main__':
   if env_secret : selenium_secret = env_secret
   cookies = { str(cfg["FFF_SECRET_NAME"]) : selenium_secret }
 
-  ### DQM^2-MIRROR DB API
-  db = dqmsquare_cfg.DQM2MirrorDB( log, cfg["GRABBER_DB_PLAYBACK_PATH"] )
-  db_production = dqmsquare_cfg.DQM2MirrorDB( log, cfg["GRABBER_DB_PRODUCTION_PATH"] )
-  dbs = { '' : db, "production" : db_production }
+  ### DQM^2-MIRROR DB CONNECTION
+  db_playback, db_production = None, None
+  if "playback" in run_modes : 
+    db_playback = dqmsquare_cfg.DQM2MirrorDB( log, cfg["GRABBER_DB_PLAYBACK_PATH"] )
+  if "production" in run_modes : 
+    db_production = dqmsquare_cfg.DQM2MirrorDB( log, cfg["GRABBER_DB_PRODUCTION_PATH"] )
 
   ### FFF API around SQL DB is websocket based, we need to define event in message and send it
   ### API is simple - we can get only 1000 headers with clients ids and documents per client ids
@@ -82,7 +84,7 @@ if __name__ == '__main__':
     return r.content
   
   bad_rvs = []
-  def update_db( host, rev = 0 ) :
+  def update_db( db_, host, rev = 0 ) :
     log.info("Update host " + host + " " + str(rev))
     if not rev : rev = 0
 
@@ -96,10 +98,6 @@ if __name__ == '__main__':
       log.warning( repr(error_log) )
       log.warning( traceback.format_exc() )
       return
-      
-    db_ = db
-    if host in production:
-      db_ = db_production
 
     if not len(headers) : return
     for header in headers :
@@ -138,12 +136,12 @@ if __name__ == '__main__':
       ### get content from active sites
       if "playback" in run_modes : 
         for host in playback :
-          rev = db.get_rev( host );
-          update_db( host, rev )
+          rev = db_playback.get_rev( host );
+          update_db( db_playback, host, rev )
       if "production" in run_modes : 
         for host in production :
           rev = db_production.get_rev( host );
-          update_db( host, rev )
+          update_db( db_production, host, rev )
     except KeyboardInterrupt:
       break
     except Exception as error_log:

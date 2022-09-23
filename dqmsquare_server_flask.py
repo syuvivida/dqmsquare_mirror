@@ -131,9 +131,11 @@ def create_app( cfg ):
       if what == "get_runs" :
         run_from = flask.request.args.get('from', default=0)
         run_to   = flask.request.args.get('to',   default=0)
+        bad_only = flask.request.args.get('bad_only', default=0)
+        with_ls_only = flask.request.args.get('ls', default=0)
         db_name = flask.request.args.get('db', default='')
         db_ = dbs.get( db_name, db )
-        answer =  db_.get_timeline_data( min(run_from, run_to), max(run_from, run_to) )
+        answer =  db_.get_timeline_data( min(run_from, run_to), max(run_from, run_to), int(bad_only), int(with_ls_only) )
         return json.dumps( answer )
       if what == "get_clients" :
         run_from = flask.request.args.get('from', default=0)

@@ -337,6 +337,7 @@ class DQM2MirrorDB:
   TB_NAME = "runs"
   DESCRIPTION = "( id TEXT PRIMARY KEY NOT NULL, client TEXT, run INT, rev INT, hostname TEXT, exit_code INT, events_total INT, events_rate REAL, cmssw_run INT, cmssw_lumi INT, client_path TEXT, runkey TEXT, fi_state TEXT, timestamp TIMESTAMP, vmrss TEXT, stdlog_start TEXT, stdlog_end TEXT )"
   DESCRIPTION_SHORT = "id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, vmrss, stdlog_start, stdlog_end".replace(" ", "").split(",")
+  DESCRIPTION_SHORT_NOLOGS = "id , client , run , rev , hostname , exit_code , events_total , events_rate , cmssw_run , cmssw_lumi , client_path , runkey , fi_state, timestamp, vmrss"
 
   TB_NAME_GRAPHS = "graphs"
   DESCRIPTION_GRAPHS = "( run INT PRIMARY KEY NOT NULL, rev INT, id TEXT, timestamp TIMESTAMP, global_start TIMESTAMP, stream_data TEXT, hostname TEXT )"
@@ -487,10 +488,18 @@ class DQM2MirrorDB:
     return 0
 
   ### get data from 'runs' table with clients data
-  def get(self, run_start, run_end):
+  def get(self, run_start, run_end, bad_only=False, with_ls_only=False):
     self.log.debug( "DQM2MirrorDB.get() - " + str(run_start) + " " + str(run_end) )
     with self.engine.connect() as cur:
-      answer = cur.execute("SELECT * FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + ";" ).all()
+      postfix = ";"
+      if bad_only :
+        postfix = " AND exit_code != 0;"
+      if with_ls_only :
+        postfix = " AND cmssw_lumi > 0 " + postfix
+      if run_start == run_end :
+        answer = cur.execute("SELECT " + self.DESCRIPTION_SHORT_NOLOGS + " FROM " + self.TB_NAME + " WHERE run = " + str(run_start) + " ORDER BY client, id" + postfix ).all()
+      else : 
+        answer = cur.execute("SELECT " + self.DESCRIPTION_SHORT_NOLOGS + " FROM " + self.TB_NAME + " WHERE run BETWEEN " + str(run_start) + " AND " + str(run_end) + postfix ).all()
     #self.log.debug( "return " + str(answer) )
     #print( answer )
     return answer
@@ -503,6 +512,7 @@ class DQM2MirrorDB:
     hostname  = data[4]
     exit_code  = data[5]
     events_total  = data[6]
+    events_rate = data[7]
     cmssw_lumi  = data[9]
     client_path  = data[10]
     runkey  = data[11]
@@ -531,7 +541,7 @@ class DQM2MirrorDB:
     cmssw_v = cmssw_path.split("CMSSW_")[1]
     runkey = runkey[len("runkey="):]
 
-    answer =  [ (timestamp, td, hostname, exit_code, client, cmssw_lumi, VmRSS, events_total, id), (cmssw_v, runkey) ]
+    answer =  [ (timestamp, td, hostname, exit_code, client, cmssw_lumi, VmRSS, events_total, id, events_rate), (cmssw_v, runkey) ]
     return answer
 
   def make_table_entry( self, data ):
@@ -542,6 +552,7 @@ class DQM2MirrorDB:
     hostname  = data[4]
     exit_code  = data[5]
     events_total  = data[6]
+    events_rate = data[7]
     cmssw_run  = data[8]
     cmssw_lumi  = data[9]
     client_path  = data[10]
@@ -578,8 +589,8 @@ class DQM2MirrorDB:
     global_data  = runs_out[0][1] if runs_out else [] 
     return global_data, clients_data
 
-  def get_timeline_data(self, run_start, run_end):
-    runs = self.get(run_start, run_end)
+  def get_timeline_data(self, run_start, run_end, bad_only=False, with_ls_only=False):
+    runs = self.get(run_start, run_end, bad_only, with_ls_only)
     runs_out = [ self.make_table_entry( run ) for run in runs ]
 
     dic = defaultdict( dict )
@@ -662,6 +673,8 @@ class DQM2MirrorDB:
     self.log.debug( "DQM2MirrorDB.get_logs()" )
     with self.engine.connect() as cur:
       answer = cur.execute( "SELECT stdlog_start, stdlog_end FROM " + self.TB_NAME + " WHERE id = '" + str(client_id) + "';" ).all()
+      if not answer : answer = ["None", "None"]
+      else : answer = answer[0]
     return answer
 
   # get next run and prev run

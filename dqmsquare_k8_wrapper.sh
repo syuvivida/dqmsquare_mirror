@@ -22,10 +22,11 @@ python3 dqmsquare_cfg.py k8
 if [ $service = "server" ] ; then
   # python3 dqmsquare_server.py
   sudo service postgresql start
-  gunicorn -w 4 -b 0.0.0.0:8084 'dqmsquare_server_flask:gunicorn_app'
 
-  # python3 dqmsquare_grabber.py production
-  # python3 dqmsquare_grabber.py playback
+  python3 dqmsquare_grabber.py production & 
+  python3 dqmsquare_grabber.py playback & 
+
+  gunicorn -w 4 -b 0.0.0.0:8084 'dqmsquare_server_flask:gunicorn_app'
 fi
 
 if [ $service = "dummy" ] ; then
