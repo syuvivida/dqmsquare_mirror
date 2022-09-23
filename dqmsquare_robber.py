@@ -141,7 +141,9 @@ if __name__ == '__main__':
       return driver.page_source
 
     ### start site sessions
+    list_good_sites = []
     def reload_pages():
+      global list_good_sites
       list_good_sites = [ False for i in range(N_targets) ]
       for i in range(N_targets):
         driver.switch_to_window( driver.window_handles[i] )

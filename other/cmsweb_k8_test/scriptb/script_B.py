@@ -13,6 +13,6 @@ while True:
   f = open( join(folder, files[0]), "r")
   line = f.readline()
   f.close()
-  print line
+  print(line)
   remove( join(folder, files[0]) )
   time.sleep(10) 

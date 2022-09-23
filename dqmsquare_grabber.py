@@ -85,6 +85,7 @@ if __name__ == '__main__':
   
   bad_rvs = []
   def update_db( db_, host, rev = 0 ) :
+    global bad_rvs
     log.info("Update host " + host + " " + str(rev))
     if not rev : rev = 0
 

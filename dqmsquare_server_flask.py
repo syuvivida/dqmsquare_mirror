@@ -15,18 +15,6 @@ log = logging.getLogger(__name__)
 log.info("start_server() call ... ")
 app = Flask(__name__)
 
-### wrapper for logs
-from functools import wraps
-from datetime import datetime
-def log_to_logger(fn):
-  @wraps(fn)
-  def _log_to_logger(*args, **kwargs):
-    request_time = datetime.now()
-    actual_response = fn(*args, **kwargs)
-    log.info('%s %s %s %s %s' % (bottle.request.remote_addr, request_time, bottle.request.method, bottle.request.url, bottle.response.status))
-    return actual_response
-  return _log_to_logger
-
 def create_app( cfg ):
   dqmsquare_cfg.set_log_handler(log, cfg["SERVER_LOG_PATH"], cfg["LOGGER_ROTATION_TIME"], cfg["LOGGER_MAX_N_LOG_FILES"], True)
   SERVER_DATA_PATH   = cfg["SERVER_DATA_PATH"]

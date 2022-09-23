@@ -26,6 +26,7 @@
   </div>
 
   <script>
+    // DQM RUNS PAGE //
     const reload_time = 5000
     const PREFIX = "/dqm/dqm-square-k8";
     let static_headers = ["Timestamp","Time Diff","Hostname","State","Tag", "LS", "RSS", "Total Ev.", "LOGS"];
@@ -201,7 +202,7 @@
               plugins: {
                 title: {
                   display: true,
-                  text: 'DQM Event Rate'
+                  text: 'DQM File Delivery'
                 }
               },
               scales: {
@@ -235,7 +236,7 @@
               plugins: {
                 title: {
                   display: true,
-                  text: 'DQM File Delivery'
+                  text: 'DQM Event Rate'
                 }, 
               },
               scales: {

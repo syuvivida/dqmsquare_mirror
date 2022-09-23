@@ -128,7 +128,8 @@ def set_k8_options(testbed = False):
 def load_cfg( path, section=cfg_SECTION ):
   if not path : return cfg
 
-  config = ConfigParser.SafeConfigParser( cfg )
+  # config = ConfigParser.SafeConfigParser( cfg )
+  config = ConfigParser.ConfigParser( cfg )
   try:
     config.read( path )
   except:
@@ -175,22 +176,33 @@ if __name__ == '__main__' :
     print( item )
 
 ### get logger ===>
+def dummy_log():
+  class DummyLogger():
+    def info(self, text): print( text )
+    def warning(self, text): print( text )
+    def debug(self, text) : print( text )
+    def error(self, text): print( text )
+  return DummyLogger()
+
 import logging
 from logging import handlers
 def set_log_handler(logger, path, interval, nlogs, debug_level):
-  # add a rotating handler
-  formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-  handler = logging.handlers.TimedRotatingFileHandler(path, when='h', interval=int(interval), backupCount=int(nlogs))
-  handler.setFormatter(formatter)
-  handler.setLevel(logging.INFO)
-  logger.setLevel(logging.INFO)
+  try:
+    # add a rotating handler
+    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    handler = logging.handlers.TimedRotatingFileHandler(path, when='h', interval=int(interval), backupCount=int(nlogs))
+    handler.setFormatter(formatter)
+    handler.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
 
-  if debug_level :
-    handler.setLevel(logging.DEBUG)
-    logger.setLevel(logging.DEBUG)
+    if debug_level :
+      handler.setLevel(logging.DEBUG)
+      logger.setLevel(logging.DEBUG)
 
-  logger.addHandler(handler)
-  logger.info("create %s log file" % path)
+    logger.addHandler(handler)
+    logger.info("create %s log file" % path)
+  except:
+    return dummy_log()
 
 ### error logger ===>
 class ErrorLogs():
@@ -356,20 +368,26 @@ class DQM2MirrorDB:
       self.db_str = ":memory:"
 
     self.engine = sqlalchemy.create_engine(self.db_str, poolclass=sqlalchemy.pool.QueuePool, pool_size=20, max_overflow=0)
+    from sqlalchemy.orm import sessionmaker
+    self.Session = sessionmaker( bind=self.engine )
+
     if not server : self.create_tables();
     self.db_meta = sqlalchemy.MetaData(bind=self.engine)
     self.db_meta.reflect()
 
-    from sqlalchemy.orm import sessionmaker
-    self.Session = sessionmaker( bind=self.engine )
-
   def create_tables(self):
     self.log.debug( "DQM2MirrorDB.create_tables()" )
     with self.engine.connect() as cur:
-      cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME + ' ' + self.DESCRIPTION )
-      cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME_GRAPHS + ' ' + self.DESCRIPTION_GRAPHS )
-      cur.execute( "DROP TABLE IF EXISTS " + self.TB_NAME_META )
-      cur.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME_META + ' ' + self.DESCRIPTION_META )
+      session = self.Session(bind=cur)
+      try:
+        session.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME + ' ' + self.DESCRIPTION )
+        session.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME_GRAPHS + ' ' + self.DESCRIPTION_GRAPHS )
+        session.execute( "DROP TABLE IF EXISTS " + self.TB_NAME_META )
+        session.execute( "CREATE TABLE IF NOT EXISTS " + self.TB_NAME_META + ' ' + self.DESCRIPTION_META )
+        session.commit()
+      except sqlite3.IntegrityError as e:
+        self.log.error("Error occurred: ", e)
+        session.rollback()
 
   ### fill table with graph data
   def fill_graph(self, header, document):
@@ -383,8 +401,8 @@ class DQM2MirrorDB:
       return
 
     rev          = header.get("_rev", -1)
-    timestamp    = extra.get("timestamp", -1)
-    global_start = extra.get("global_start", -1)
+    timestamp    = extra.get("timestamp", datetime.datetime(2012, 3, 3, 10, 10, 10) )
+    global_start = extra.get("global_start", datetime.datetime(2012, 3, 3, 10, 10, 10) )
     stream_data  = str(extra.get("streams", ""))
     hostname     = header.get("hostname", "")
 
@@ -409,16 +427,14 @@ class DQM2MirrorDB:
 
     return 0
 
-
-
   def get_graphs_data(self, run):
     self.log.debug( "DQM2MirrorDB.get_graphs_data() - " + str(run) )
     with self.engine.connect() as cur:
       answer = cur.execute("SELECT * FROM " + self.TB_NAME_GRAPHS + " WHERE CAST(run as INTEGER) = " + str(run) + ";" ).all()
     if not len( answer ) : return "[]"
-    # print( answer )
     answer = list( answer[0] )
-    answer[-2] = eval( answer[-2] )
+    if answer[-2]:
+      answer[-2] = eval( answer[-2] )
     # print( answer )
     return answer
 
@@ -442,7 +458,7 @@ class DQM2MirrorDB:
           runkey = item
     except: pass
     fi_state     = document.get("fi_state", "")
-    timestamp    = header.get("timestamp", -1)
+    timestamp    = header.get("timestamp", datetime.datetime(2012, 3, 3, 10, 10, 10))
 
     extra = document.get( "extra", {} )
     ps_info = extra.get( "ps_info", {} )
@@ -626,8 +642,8 @@ class DQM2MirrorDB:
       session = self.Session(bind=cur)
       try:
         # cur.execute("INSERT OR REPLACE INTO " + self.TB_NAME_META + " " + self.DESCRIPTION_SHORT_META + " VALUES('min_max_runs', '[" + str(new_min) + "," + str(new_max) + "]')" )
-        session.execute("DELETE FROM " + self.TB_NAME_META + " WHERE name = 'min_max_runs'" )
-        session.execute("INSERT " + self.TB_NAME_META + " " + self.DESCRIPTION_SHORT_META + " VALUES('min_max_runs', '[" + str(new_min) + "," + str(new_max) + "]')" )
+        session.execute("DELETE FROM " + self.TB_NAME_META + " WHERE name = 'min_max_runs';" )
+        session.execute("INSERT INTO " + self.TB_NAME_META + " " + self.DESCRIPTION_SHORT_META + " VALUES('min_max_runs', '[" + str(new_min) + "," + str(new_max) + "]');" )
         session.commit()
       except sqlite3.IntegrityError as e:
         self.log.error("Error occurred: ", e)
@@ -642,12 +658,12 @@ class DQM2MirrorDB:
       answer = cur.execute( "SELECT data FROM " + self.TB_NAME_META + " WHERE name = 'min_max_runs';" ).all()
 
       if answer :
-        return list(answer)
+        return eval(answer[0][0])
 
       answer = cur.execute( "SELECT MIN(run), MAX(run) FROM " + self.TB_NAME + ";" ).all()
       if not answer : return [-1, -1]
 
-    answer = list(answer[0])
+      answer = list(answer[0])
     # self.update_min_max( answer[0], answer[1] )
 
     return answer
@@ -677,11 +693,14 @@ class DQM2MirrorDB:
       else : answer = answer[0]
     return answer
 
-  # get next run and prev run
+  # get next run and prev run, unordered
   def get_runs_arounds(self, run):
     self.log.debug( "DQM2MirrorDB.get_runs_arounds()" )
     with self.engine.connect() as cur:
       answer = cur.execute( "SELECT min(run) from " + self.TB_NAME + " where run > " + str(run) + " union SELECT max(run) FROM " + self.TB_NAME + " WHERE run < " + str(run) + ";" ).all()
+      # answer1 = cur.execute( "SELECT min(run) from " + self.TB_NAME + " where run > " + str(run) + ";" ).all()           
+      # answer2 = cur.execute( "SELECT max(run) FROM " + self.TB_NAME + " WHERE run < " + str(run) + ";" ).all()             
+      # print( run, answer, answer1, answer2 )
       answer = [ item[0] for item in answer ]
     return answer
 
