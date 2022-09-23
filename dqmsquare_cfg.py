@@ -176,23 +176,6 @@ if __name__ == '__main__' :
     print( item )
 
 ### get logger ===>
-import logging
-from logging import handlers
-def set_log_handler(logger, path, interval, nlogs, debug_level):
-  # add a rotating handler
-  formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-  handler = logging.handlers.TimedRotatingFileHandler(path, when='h', interval=int(interval), backupCount=int(nlogs))
-  handler.setFormatter(formatter)
-  handler.setLevel(logging.INFO)
-  logger.setLevel(logging.INFO)
-
-  if debug_level :
-    handler.setLevel(logging.DEBUG)
-    logger.setLevel(logging.DEBUG)
-
-  logger.addHandler(handler)
-  logger.info("create %s log file" % path)
-
 def dummy_log():
   class DummyLogger():
     def info(self, text): print( text )
@@ -200,6 +183,26 @@ def dummy_log():
     def debug(self, text) : print( text )
     def error(self, text): print( text )
   return DummyLogger()
+
+import logging
+from logging import handlers
+def set_log_handler(logger, path, interval, nlogs, debug_level):
+  try:
+    # add a rotating handler
+    formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    handler = logging.handlers.TimedRotatingFileHandler(path, when='h', interval=int(interval), backupCount=int(nlogs))
+    handler.setFormatter(formatter)
+    handler.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
+
+    if debug_level :
+      handler.setLevel(logging.DEBUG)
+      logger.setLevel(logging.DEBUG)
+
+    logger.addHandler(handler)
+    logger.info("create %s log file" % path)
+  except:
+    return dummy_log()
 
 ### error logger ===>
 class ErrorLogs():
