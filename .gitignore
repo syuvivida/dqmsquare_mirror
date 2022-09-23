@@ -1,0 +1,5 @@
+*.log
+*.db
+*.pyc
+tmp/*
+__pycache__/

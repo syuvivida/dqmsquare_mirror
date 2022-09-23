@@ -67,7 +67,6 @@ class DQMPageData( ):
 
   def AddJobLogs( self, logs ):
     self.jobs_logs[-1] += logs
-    self.jobs[-1][-1] = "->"
 
     name, link = self.GetJoblogFileName( len(self.jobs)-1 )
     self.jobs[-1][-1] = '<a href="'+link+'" target="_blank"> -> </a>'
@@ -140,8 +139,8 @@ class DQMPageData( ):
     for attr, row in zip(self.jobs_attr, self.jobs) :
       content += "<tr " + attr['row_attr'] + "> "
       for col in row : 
-        content += '<td class="job_table_cell">' + col + "<td> "
-      content += "</td>\n"
+        content += '<td class="job_table_cell">' + col + "</td> "
+      content += "</tr>\n"
     content += "</table>\n"
 
     ### images if exist

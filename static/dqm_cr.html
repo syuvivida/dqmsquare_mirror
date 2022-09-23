@@ -75,6 +75,16 @@
       border-top: none;
     } 
 
+    .tablinks {
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .tablinks.activetab {
+      font-size: 15px;
+      font-weight: bold;
+    }
+
     /* progress bars */
     #myProgress {
       width: 100%;
@@ -105,17 +115,25 @@
     <button class="btn" id="btn_get_dqm_machines" onclick="cr_get_dqm_machines()">Print DQM machines</button>
     <button class="btn" id="btn_get_hltd_version" onclick="cr_get_hltd_version()">Print HLTD versions</button>
     <button class="btn" id="btn_get_fff_version" onclick="cr_get_fff_version()">Print FFF versions</button>
-    <button class="btn" id="btn_get_simulator_config" onclick="cr_get_simulator_config()">Print Simulator config</button>
     <button class="btn" id="btn_get_cmssw_info" onclick="cr_get_cmssw_info()">Print CMSSW info</button>
 
     <div class="row">
       <div class="column"> <div id="hltd_production"> </div></div>
       <div class="column"> <div id="hltd_playback"> </div></div>
       <div class="column"> <div id="playback_run"> </div> 
-        Select playback run: <select id="run_number" name="run_number"></select><br>
+        <strong>Playback simulations:</strong> <br>
+        <button class="btn" id="btn_get_simulator_config" onclick="cr_get_simulator_config()">Print Simulator config</button> <br>
+        Select playback run: <select id="run_number" name="run_number" onchange="update_oms_link( this.options[this.selectedIndex].value )"></select> <br>
+        <a id="oms_link" href="https://cmsoms.cern.ch/cms/runs/report?cms_run=349963&cms_run_sequence=GLOBAL-RUN" target="_blank">OMS link run 349963</a> <br>
         Select run class:    <select id="run_key" name="run_key"></select><br>
-        Set LS number:       <input type="number" id="LS_number" name="LS_number" min="10" max="10000" size="7"><br>
-        <button class="btn" id="btn_start_playback_run" onclick="cr_start_playback_run()">Start new run</button><br>
+        Set LS number:       <input type="number" id="LS_number" name="LS_number" min="1" max="10000" size="7"><br>
+        <button class="btn" id="btn_start_playback_run" onclick="cr_start_playback_run()">Start new run</button><br><br>
+
+        <strong>Productions runs:</strong> <br>
+        Select production run: <select id="run_number_prod" name="run_number_prod"></select>
+        <button class="btn" id="btn_get_production_runs" onclick="cr_get_production_runs()">refresh</button> <br>
+        Set LS number to copy: <input type="number" id="LS_number_prod" name="LS_number_prod" min="1" max="10000" size="7"><br>
+        <button class="btn" id="btn_copy_production_runs" onclick="cr_copy_production_runs()">Copy production run</button><br>
       </div> 
     </div>
     <p style="clear:both;margin-bottom:25px"></p>
@@ -128,7 +146,48 @@
   </div>
 
   <script>
-    var PREFIX = "/dqm/dqm-square-k8";
+    // consts
+    const PREFIX = "/dqm/dqm-square-k8";
+
+    // some direct and helping functions
+    function update_oms_link( run_key ){
+      result = run_key.match( /\d\d\d\d\d\d/ );
+      if( result ){
+        var run = result[0];
+        document.getElementById("oms_link").href="https://cmsoms.cern.ch/cms/runs/report?cms_run=" + run + "&cms_run_sequence=GLOBAL-RUN";
+        document.getElementById("oms_link").textContent = "OMS link run " + run;
+      } else {
+        document.getElementById("oms_link").href="";
+        document.getElementById("oms_link").textContent = "";
+      }
+    }
+
+    function removeOptions(selectElement) {
+       var i, L = selectElement.options.length - 1;
+       for(i = L; i >= 0; i--) {
+          selectElement.remove(i);
+       }
+    }
+
+    function addOptions(selectElement, options) {
+      for(var i = 0; i < options.length; i++) {
+          var opt = options[i];
+          var el = document.createElement("option");
+          el.textContent = opt;
+          el.value = opt;
+          selectElement.appendChild(el);
+      }
+    }
+
+    function setDefaultOptions(selectElement, option) {
+      for(var i, j = 0; i = selectElement.options[j]; j++) {
+        if(i.value == option) {
+          selectElement.selectedIndex = j;
+          return;
+        }
+      }
+    }
+
     // load bar
     var bar_N_req  = 0;
     var bar_N_done = 0;
@@ -174,6 +233,22 @@
         if( this.readyState == XMLHttpRequest.DONE ){
           if (this.status == 200) {
             push_to_console( xhttp.responseText );
+          } else {
+            push_to_console( "Error, XMLHttpRequest status="+this.status );
+            push_to_console( "responseText: " + this.responseText );
+          }
+          var element = document.getElementById( element_name );
+          element.style.color="";
+        }
+      }
+    }
+
+    function set_cr_button_callback(xhttp, element_name, callback){
+      xhttp.onreadystatechange = function() {
+        if( this.readyState == XMLHttpRequest.DONE ){
+          if (this.status == 200) {
+            push_to_console( xhttp.responseText );
+            callback( xhttp.responseText );
           } else {
             push_to_console( "Error, XMLHttpRequest status="+this.status );
             push_to_console( "responseText: " + this.responseText );
@@ -269,6 +344,55 @@
       process_cr_button(xhttp_start_playback_run, PREFIX+"/cr/exe?what=start_playback_run&run_number="+run_number + "&run_key=" + run_key + "&number_of_ls=" + number_of_ls, "btn_start_playback_run");
     }
 
+    var xhttp_copy_production_runs = new XMLHttpRequest();
+    set_cr_button(xhttp_copy_production_runs, "btn_copy_production_runs")
+    function cr_copy_production_runs(){
+      run_number   = document.getElementById("run_number_prod").value;
+      number_of_ls = document.getElementById("LS_number_prod").value;
+      process_cr_button(xhttp_copy_production_runs, PREFIX+"/cr/exe?what=copy_production_runs&run_number="+run_number + "&number_of_ls=" + number_of_ls, "btn_copy_production_runs");
+    }
+
+    // functions with callback
+    var xhttp_get_production_runs = new XMLHttpRequest();
+    set_cr_button_callback(xhttp_get_production_runs, "btn_get_production_runs", function( runs ){
+      var run_numbers_prod_select = document.getElementById("run_number_prod");
+      // runs is a list [['000000', '000'], ['111111', '111'], ['222222', '222']]
+      data_to_print="<strong>Runs and lumisections available:</strong><br>"
+      const runs_numbers = []
+      const runs_arr = runs.split(",");
+      runs_arr.forEach(function(item, index, array) {
+          let x = item.split("_")
+          data_to_print += "Run <strong>" + x[0] + "</strong> with <strong>" + x[1] + "</strong> lumi files <br>";
+          runs_numbers.push( x[0] )
+        })
+      push_to_console( data_to_print );
+
+      removeOptions( run_numbers_prod_select );
+      addOptions(run_numbers_prod_select, runs_numbers);
+    });
+    function cr_get_production_runs(){
+      process_cr_button(xhttp_get_production_runs, PREFIX+"/cr/exe?what=get_production_runs", "btn_get_production_runs");
+    }
+
+    // buttons constructor functions
+    function cr_restart_hltd(machine){
+      set_and_process_cr_button("btn hltd restart " + machine, PREFIX+"/cr/exe?what=restart_hltd&host=" + machine);
+    }
+
+    function cr_restart_fff(machine){
+      set_and_process_cr_button("btn fff restart " + machine, PREFIX+"/cr/exe?what=restart_fff&host=" + machine);
+    }
+
+    // buttons constructor functions to open tabs with logs
+    function cr_get_hltd_logs(machine){
+      set_and_process_cr_log_button("btn hltd logs " + machine, PREFIX+"/cr/exe?what=get_hltd_logs&host=" + machine);
+    }
+
+    function cr_get_fff_logs(machine){
+      set_and_process_cr_log_button("btn fff logs " + machine, PREFIX+"/cr/exe?what=get_fff_logs&host=" + machine);
+    }
+
+    // buttons with actions
     function cr_get_dqm_clients( host, playback, callback ){
       let xhttp_def_pl = new XMLHttpRequest();
       xhttp_def_pl.open("GET", PREFIX+"/cr/exe?what=get_dqm_clients&host=" + host + "&playback=" + playback, true);
@@ -311,37 +435,28 @@
       xhttp_def_pl.send();
     }
 
-    function cr_get_dqm_clients_tabe_content( item, playback, element_tabs ){
-      cr_get_dqm_clients( item, playback, function( clients ){
-        let content = "<div id=\'tab " + item + "\' class=\"tabcontent\">";
-        clients_a = eval(clients);
-        clients_a.forEach(function(client, index, array) {
-          let name = "check," + item + "," + client[0];
-          if( Boolean(client[1]) ){
-            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" checked /> <span id=" + name + "> " + client[0] + " </label> <br>";
-          } else {
-            content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" /> <span id=" + name + "> " + client[0] + " <br>";
-          };
+    function cr_get_dqm_clients_tabe_content( evt, tab_client_name, item, playback, element_tabs ){
+      element = document.getElementById( "btn fff clients " + item );
+      target = evt.currentTarget
+      if( element.style.color == "" ){
+        element.style.color="red";
+        cr_get_dqm_clients( item, playback, function( clients ){
+          element = document.getElementById( "btn fff clients " + item );
+          element.style.color="";
+          let content = "<div id=\'tab " + item + "\' class=\"tabcontent\">";
+          clients_a = eval(clients);
+          clients_a.forEach(function(client, index, array) {
+            let name = "check," + item + "," + client[0];
+            if( Boolean(client[1]) ){
+              content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" checked /> <span id=" + name + "> " + client[0] + " </label> <br>";
+            } else {
+              content += "<input type=\"checkbox\" name=\"" + name + "\" onchange=\"cr_dqm_change_client(this, \'" + playback + "\')\" /> <span id=" + name + "> " + client[0] + " <br>";
+            };
+          });
+          document.getElementById( element_tabs ).innerHTML += content + "</p> </div>";
+          cr_open_tab(target, tab_client_name);
         });
-        document.getElementById( element_tabs ).innerHTML += content + "</p> </div>";
-      });
-    }
-
-    // buttons constructor
-    function cr_restart_hltd(machine){
-      set_and_process_cr_button("btn hltd restart " + machine, PREFIX+"/cr/exe?what=restart_hltd&host=" + machine);
-    }
-
-    function cr_get_hltd_logs(machine){
-      set_and_process_cr_log_button("btn hltd logs " + machine, PREFIX+"/cr/exe?what=get_hltd_logs&host=" + machine);
-    }
-
-    function cr_restart_fff(machine){
-      set_and_process_cr_button("btn fff restart " + machine, PREFIX+"/cr/exe?what=restart_fff&host=" + machine);
-    }
-
-    function cr_get_fff_logs(machine){
-      set_and_process_cr_log_button("btn fff logs " + machine, PREFIX+"/cr/exe?what=get_fff_logs&host=" + machine);
+      }
     }
 
     // Get DQM machine list and set some buttons per dqm machine list
@@ -387,8 +502,9 @@
         let text_clients = "<strong>Playback clients:</strong> <br>" ;
         dqm_machines_pl.forEach(function(item, index, array) {
           if( item.charAt(0) == "b" ) return;
-          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
-          cr_get_dqm_clients_tabe_content( item, "1", "clients_playback_tabs" );
+          //text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
+          // cr_get_dqm_clients_tabe_content( item, "1", "clients_playback_tabs" );
+          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_get_dqm_clients_tabe_content(event, \'tab " + item + "\', \'" + item + "\', \'1\', \'clients_playback_tabs\')\">" + item + "</button>";    
         });
 
         document.getElementById("clients_playback").innerHTML = text_clients;
@@ -435,8 +551,9 @@
         let text_clients = "<strong>Production clients:</strong> <br>" ;
         dqm_machines_pr.forEach(function(item, index, array) {
           if( item.charAt(0) == "b" ) return;
-          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";
-          cr_get_dqm_clients_tabe_content( item, "0", "clients_production_tabs" );
+          // text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_open_tab(event, \'tab " + item + "\')\">" + item + "</button>";    
+          //cr_get_dqm_clients_tabe_content( item, "0", "clients_production_tabs" );
+          text_clients += "<button class=\"tablinks\" id=\"btn fff clients " + item + "\" onclick=\"cr_get_dqm_clients_tabe_content(event, \'tab " + item + "\', \'" + item + "\', \'0\', \'clients_production_tabs\')\">" + item + "</button>";    
         });
 
         document.getElementById("clients_production").innerHTML = text_clients;
@@ -444,32 +561,6 @@
     }
 
     // choice run number, run_key, number_of_ls
-    function removeOptions(selectElement) {
-       var i, L = selectElement.options.length - 1;
-       for(i = L; i >= 0; i--) {
-          selectElement.remove(i);
-       }
-    }
-
-    function addOptions(selectElement, options) {
-      for(var i = 0; i < options.length; i++) {
-          var opt = options[i];
-          var el = document.createElement("option");
-          el.textContent = opt;
-          el.value = opt;
-          selectElement.appendChild(el);
-      }
-    }
-
-    function setDefaultOptions(selectElement, option) {
-      for(var i, j = 0; i = selectElement.options[j]; j++) {
-        if(i.value == option) {
-          selectElement.selectedIndex = j;
-          return;
-        }
-      }
-    }
-
     var run_numbers_dropbox = document.getElementById("run_number");
     var run_key_dropbox = document.getElementById("run_key");
     var LS_number_dropbox = document.getElementById("LS_number");
@@ -527,11 +618,13 @@
           var run_numbers = eval( xhttp_runs.responseText );
           addOptions(run_numbers_dropbox, run_numbers);
           setDefaultOptions(run_numbers_dropbox, run_name);
+          update_oms_link( run_name );
         }
       }
     }
 
-  function cr_open_tab(evt, cityName) {
+  // function cr_open_tab(evt, cityName) {
+  function cr_open_tab(target, cityName ) {
     // Declare all variables
     var i, tabcontent, tablinks;
 
@@ -544,14 +637,14 @@
     // Get all elements with class="tablinks" and remove the class "active"
     tablinks = document.getElementsByClassName("tablinks");
     for (i = 0; i < tablinks.length; i++) {
-      tablinks[i].className = tablinks[i].className.replace(" active", "");
-      tablinks[i].style.fontWeight =  '100';
+      tablinks[i].className = tablinks[i].className.replace(" activetab", "");
+      // tablinks[i].style.fontWeight =  '100';
     }
 
     // Show the current tab, and add an "active" class to the button that opened the tab
     document.getElementById(cityName).style.display = "block";
-    evt.currentTarget.className += " active";
-    evt.currentTarget.style.fontWeight =  '700';
+    target.className += " activetab";
+    target.style.fontWeight = '700';
   } 
 
   </script>

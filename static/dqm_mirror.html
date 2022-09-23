@@ -18,9 +18,9 @@
   <div id="dynamicPart"> ... </div>
 
   <script>
-    let url_production="%PATH_TO_PRODUCTION_PAGE%"
-    let url_playback="%PATH_TO_PLAYBACK_PAGE%"
-    let reload_time=%RELOAD_TIME%
+    let url_production="api?what=get_production"
+    let url_playback="api?what=get_playback"
+    let reload_time=5000
 
     window.timer_load_production = 0;
     window.timer_load_playback = 0;
