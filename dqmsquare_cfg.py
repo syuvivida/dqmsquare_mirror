@@ -405,6 +405,9 @@ class DQM2MirrorDB:
     global_start = extra.get("global_start", datetime.datetime(2012, 3, 3, 10, 10, 10) )
     stream_data  = str(extra.get("streams", ""))
     hostname     = header.get("hostname", "")
+    
+    if not isinstance(global_start, datetime.datetime):
+      global_start = datetime.datetime.fromtimestamp( global_start )
 
     values = [ run, rev, id, timestamp, global_start, stream_data, hostname ]
     values_dic = {}
@@ -420,7 +423,7 @@ class DQM2MirrorDB:
         # cur.execute( sqlalchemy.insert( self.TB_NAME_GRAPHS ).values( values_dic )
         session.execute( sqlalchemy.insert( self.db_meta.tables[ self.TB_NAME_GRAPHS ] ).values( values_dic ) )
         session.commit()
-      except sqlite3.IntegrityError as e:
+      except Exception as e:
         self.log.error("Error occurred: ", e)
         session.rollback()
         return 1
@@ -479,7 +482,7 @@ class DQM2MirrorDB:
         session.execute("DELETE FROM " + self.TB_NAME + " WHERE id = '" + str(id) + "'" )
         session.execute( sqlalchemy.insert( self.db_meta.tables[ self.TB_NAME ] ).values( values_dic ) )
         session.commit()
-      except sqlite3.IntegrityError as e:
+      except Exception as e:
         self.log.error("Error occurred: ", e)
         session.rollback()
         return 1
@@ -645,7 +648,7 @@ class DQM2MirrorDB:
         session.execute("DELETE FROM " + self.TB_NAME_META + " WHERE name = 'min_max_runs';" )
         session.execute("INSERT INTO " + self.TB_NAME_META + " " + self.DESCRIPTION_SHORT_META + " VALUES('min_max_runs', '[" + str(new_min) + "," + str(new_max) + "]');" )
         session.commit()
-      except sqlite3.IntegrityError as e:
+      except Exception as e:
         self.log.error("Error occurred: ", e)
         session.rollback()
         return 1
