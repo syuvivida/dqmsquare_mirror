@@ -38,7 +38,7 @@ cfg["SERVER_RELOAD_TIME"]             = 5000 #msec, int
 cfg["SERVER_LOG_PATH"]                = "log/server.log"
 cfg["SERVER_DATA_PATH"]               = "/"
 cfg["SERVER_FFF_CR_PATH"]             = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin"
-cfg["SERVER_FFF_MACHINE"]             = "bu-c2f11-13-01"
+cfg["SERVER_FFF_MACHINE"]             = "dqmrubu-c2a06-03-01"
 cfg["SERVER_GRID_CERT_PATH"]          = "/home/pmandrik/CERT_TEST/np2/usercert.pem"
 cfg["SERVER_GRID_KEY_PATH"]           = "/home/pmandrik/CERT_TEST/np2/userkey.pem"
 cfg["SERVER_SIMULATOR_RUN_KEYS"]      = "cosmic_run,pp_run,commisioning_run"
@@ -61,8 +61,8 @@ cfg["ROBBER_DEBUG"] = False
 cfg["ROBBER_GRAB_LOGS"] = True
 cfg["ROBBER_GRAB_GRAPHS"] = True
 cfg["ROBBER_GRAB_OLDRUNS"] = True
-cfg["ROBBER_TARGET_SITES"] = "http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
-cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://fu-c2f11-11-01.cms:9215/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+cfg["ROBBER_TARGET_SITES"] = "http://dqmrubu-c2a06-03-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=production_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://dqmrubu-c2a06-03-01.cms:9215/static/index.html#/lumi/?trackRun&hosts=playback_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "http://dqmrubu-c2a06-03-01.cms:9215/static/index.html#/lumi/?hosts=production_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,http://dqmrubu-c2a06-03-01.cms:9215/static/index.html#/lumi/?hosts=playback_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 cfg["ROBBER_OUTPUT_PATHS"]  = "tmp/content_robber_production,tmp/content_robber_playback"
 cfg["ROBBER_RELOAD_NITERS"] = 100
 cfg["ROBBER_LOG_PATH"]         = "log/robber1.log"
@@ -112,8 +112,8 @@ def set_k8_options(testbed = False):
   cfg["ROBBER_FIREFOX_PATH"]  = "/opt/firefox/firefox"
   cfg["ROBBER_GECKODRIVER_PATH"] = "/usr/bin/geckodriver"
   cfg["ROBBER_FIREFOX_PROFILE_PATH"] = "/firefox_profile_path"
-  cfg["ROBBER_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
-  cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+  cfg["ROBBER_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2a06&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2a06&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+  cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb-testbed.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
   cfg["GRABBER_DB_PLAYBACK_PATH"]   = "postgresql:///postgres"
   cfg["GRABBER_DB_PRODUCTION_PATH"] = "postgresql:///postgres_production"
@@ -121,8 +121,8 @@ def set_k8_options(testbed = False):
   if not testbed : 
     cfg["SERVER_FFF_CR_PATH"]   = "https://cmsweb.cern.ch/dqm/dqm-square-origin"
     cfg["ROBBER_K8_LOGIN_PAGE"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/login"
-    cfg["ROBBER_TARGET_SITES"]  = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2f11&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
-    cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2f11&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+    cfg["ROBBER_TARGET_SITES"]  = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=production_c2a06&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?trackRun&hosts=playback_c2a06&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
+    cfg["ROBBER_OLDRUNS_TARGET_SITES"] = "https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=production_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph,https://cmsweb.cern.ch/dqm/dqm-square-origin/static/index.html#/lumi/?hosts=playback_c2a06&run=&showFiles&showJobs&showTimestampsGraph&showEventsGraph"
 
 ### load values === >
 def load_cfg( path, section=cfg_SECTION ):

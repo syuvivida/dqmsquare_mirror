@@ -20,8 +20,8 @@ if __name__ == '__main__':
 
   # for local tests ... 
   run_modes  = [ "playback", "production" ]
-  playback   = [ "bu-c2f11-13-01", "fu-c2f11-15-04", "fu-c2f11-15-01", "fu-c2f11-15-02", "fu-c2f11-15-03" ]
-  production = [ "bu-c2f11-09-01", "fu-c2f11-11-01", "fu-c2f11-11-02", "fu-c2f11-11-03", "fu-c2f11-11-04" ]
+  playback   = [ "dqmrubu-c2a06-03-01", "dqmfu-c2b01-45-01", "dqmfu-c2b02-45-01" ]
+  production = [ "dqmrubu-c2a06-01-01", "dqmfu-c2b03-45-01", "dqmfu-c2b04-45-01" ]
 
   import sys
   if len(sys.argv) > 1 and sys.argv[1] == "playback":
@@ -39,8 +39,8 @@ if __name__ == '__main__':
     handler2.setFormatter(formatter)
     handler2.setLevel( logging.INFO )
     log.addHandler(handler2)
-    playback   = [ "bu-c2f11-13-01", "fu-c2f11-15-04", "fu-c2f11-15-01", "fu-c2f11-15-02", "fu-c2f11-15-03" ]
-    production = [ "bu-c2f11-09-01", "fu-c2f11-11-01", "fu-c2f11-11-02", "fu-c2f11-11-03", "fu-c2f11-11-04" ]
+    playback   = [ "dqmrubu-c2a06-03-01", "dqmfu-c2b01-45-01", "dqmfu-c2b02-45-01" ]
+    production = [ "dqmrubu-c2a06-01-01", "dqmfu-c2b03-45-01", "dqmfu-c2b04-45-01" ]
 
   ### global variables and auth cookies
   cr_path = cfg["SERVER_FFF_CR_PATH"]
@@ -123,11 +123,11 @@ if __name__ == '__main__':
         if answer : 
           bad_rvs += [ answer ]
 
-  #update_db("fu-c2f11-15-04", 0 )
+  #update_db("dqmfu-c2b01-45-01", 0 )
   #exit()
 
-  #rev = db.get_rev( "fu-c2f11-15-04" );
-  #update_db( "fu-c2f11-15-04", rev )
+  #rev = db.get_rev( "dqmfu-c2b01-45-01" );
+  #update_db( "dqmfu-c2b01-45-01", rev )
   #exit()
 
   log.info( "loop ... " + str(run_modes) )
